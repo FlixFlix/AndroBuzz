@@ -19,11 +19,15 @@ import java.net.URL;
 import java.net.HttpURLConnection;
 
 
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.messaging.FirebaseMessaging;
 
 import com.androbuzz.android.R;
 import com.geil.myapplication.app.Config;
 import com.geil.myapplication.util.NotificationUtils;
+
+import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -31,11 +35,13 @@ public class MainActivity extends AppCompatActivity {
     private BroadcastReceiver mRegistrationBroadcastReceiver;
     private TextView txtRegId, txtMessage;
 
+    private static final String DB_URL = "https://androbuzz-8d0b1.firebaseio.com/";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+//        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         txtRegId = (TextView) findViewById(R.id.txt_reg_id);
         txtMessage = (TextView) findViewById(R.id.txt_push_message);
 
@@ -103,6 +109,16 @@ public class MainActivity extends AppCompatActivity {
         String regId = pref.getString("regId", null);
 
         Log.e(TAG, "Firebase reg id: " + regId);
+
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference myRef = database.getReference();
+
+        try{
+            myRef.child("clientId").setValue(regId);
+
+        }catch (Exception e){
+            Log.e("DBG", e.getMessage());
+        }
 
         if (!TextUtils.isEmpty(regId))
             txtRegId.setText("Firebase Reg Id: " + regId);

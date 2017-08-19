@@ -17,6 +17,8 @@ class Push {
     // in background when push is received
     private $is_background;
 
+    private $msgId;
+
     function __construct() {
         
     }
@@ -41,6 +43,10 @@ class Push {
         $this->is_background = $is_background;
     }
 
+    public function setMsgId($messageId){
+        $this->msgId = $messageId;
+    }
+
     public function getPush() {
         $res = array();
         $res['data']['title'] = $this->title;
@@ -49,6 +55,7 @@ class Push {
         $res['data']['image'] = $this->image;
         $res['data']['payload'] = $this->data;
         $res['data']['timestamp'] = date('Y-m-d G:i:s');
+        $res['data']['uniqueId'] = $this->msgId;
         return $res;
     }
 

@@ -1,7 +1,10 @@
 <?php
-function send_to_device( $message ) {
+require_once __DIR__ . '/config.php';
 
-	$regId = 'f_qDcchkCVc:APA91bExbJQ1hdVQ8gQyAUDOEq-CLHrtRmEz4W37XZ70OO_ghFdXNib5DVvJUbGP-AZSR62KM9X_OYg6hPyMvm_ZPs1ZffwZDa8WmuOquRLtJyOfkJLNqLCCKaUB55orj4q0TJzmN27i';
+function send_to_device($msgId, $message, $clientId ) {
+
+	//$regId = 'd1tru0XBXZs:APA91bENW0czC2VQlo0XdIYX5l6qRCsx7M4Dzulg-kef-yP4LwmbCKvYTYPGFAOIFsjq3c1hc1Z2Aa7COldVwiSpJn1iNqB-yhS2leIVlIHgdobm_GE5gx234Ax-zmGKwCmk0sAmQIy7';
+    $regId = $clientId;
 
 	require_once __DIR__ . '/firebase.php';
 	require_once __DIR__ . '/push.php';
@@ -19,9 +22,10 @@ function send_to_device( $message ) {
 	$push->setMessage( $message );
 	$push->setImage( '' );
 	$push->setIsBackground( FALSE );
+	$push->setMsgId($msgId);
 
 	$json     = $push->getPush();
-	$response = $firebase->send( $regId, $json );
+	$response = $firebase->send($regId, $json );
 
 	return $response;
 }
@@ -29,12 +33,16 @@ function send_to_device( $message ) {
 function androbuzz() {
 	$data                    = $_POST;
 	$message                 = $data[ "message" ];
+	$jsonDecode              = json_decode($message);
 	$start_time              = microtime( TRUE );
-	$response                = send_to_device( $message );
+	$uniqueId                = md5(uniqid('msg_', true));
+	$response                = send_to_device($uniqueId, $jsonDecode->message, $jsonDecode->clientId);
 	$end_time                = microtime( TRUE );
 	$return[ "device_ping" ] = round( ( $end_time - $start_time ) * 1000 );
 	$return[ "response" ]    = json_encode( json_decode( $response )->results );
-	$return[ "message" ]     = $data[ "message" ];
+	$return[ "message" ]     = $jsonDecode->message;
+	$return[ "clientId" ]    = $jsonDecode->clientId;
+	$return[ "messageId"]    = $uniqueId;
 	echo json_encode( $return );
 }
 
@@ -54,9 +62,29 @@ if ( is_ajax() ) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-database.js"></script>
+
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
     <script>
+    // Initialize Firebase
+      var config = {
+        apiKey: "<?php echo FIREBASE_API_KEY ?>",
+        databaseURL: "https://androbuzz-8d0b1.firebaseio.com/"
+      };
+      firebase.initializeApp(config);
+      var database = firebase.database();
+      var clientId;
+
+      var clientRef = database.ref('clientId');
+
+      clientRef.on('value', function(snapshot) {
+            if(snapshot.val() != null){
+                    clientId = snapshot.val();
+            }
+      });
+
 		$( 'document' ).ready( function() {
 			var view = {};
 
@@ -84,6 +112,8 @@ if ( is_ajax() ) {
 			$( 'button' ).click( function() {
 				var message = $( this ).attr( 'name' );
 				redraw( 'status', 'Sending message... ' + message );
+
+				var json = {"message" : message, "clientId" : clientId};
 				var currentTime = new Date(),
 					hours = currentTime.getHours(),
 					minutes = currentTime.getMinutes();
@@ -98,7 +128,7 @@ if ( is_ajax() ) {
 				var start_time = new Date().getTime();
 				var data = {
 					'action': 'androbuzz',
-					'message': message
+					'message': JSON.stringify(json)
 				};
 				data = $( this ).serialize() + '&' + $.param( data );
 				$.ajax( {
@@ -107,13 +137,34 @@ if ( is_ajax() ) {
 					url: '',
 					data: data,
 					success: function( data ) {
+					    var msg = JSON.parse(data['response'].substring(1, data['response'].length-1));
 						view['ping'] = (new Date().getTime() - start_time - data['device_ping']) + 'ms';
 						view['device_ping'] = data['device_ping'] + 'ms';
-						view['message'] = '<strong>' + data['message'] + '</strong> at ' + timestamp;
-						var msg = JSON.parse(data['response'].substring(1, data['response'].length-1));
-						var msgId = msg['message_id'];
+
+						var msgId = data['messageId'];
 						view['response'] = hashCode(msgId);
 						view['status'] = 'Ready';
+						view['client_id'] = data['clientId'];
+                        view['message'] = '<strong>' + data['message'] + '</strong> at ' + timestamp + '\nmsgId: ' + msgId;
+
+                        var dataref = database.ref('messages/' + data['messageId']);
+
+                        var timeOut = setTimeout(function(){
+                                dataref.off();
+                                $('#consoleDiv').append(msgId + "failed to arrive");
+                        }, 5000);
+
+
+                        dataref.on('value', function(snapshot) {
+                            if(snapshot.val() != null){
+                                $('#consoleDiv').append(msgId + " arrived successfully");
+                                clearTimeout(timeOut);
+                                dataref.off();
+                            }
+                        });
+
+
+
 						redraw();
 					}
 				} );
@@ -216,11 +267,16 @@ if ( is_ajax() ) {
                             <td>FCM ping</td>
                             <td data-label="device_ping"></td>
                         </tr>
+                        <tr>
+                            <td>Client ID</td>
+                            <td data-label="client_id"></td>
+                        </tr>
                         </tbody>
                     </table>
                 </div>
                 <div class="panel-footer">
                     <strong>Status:</strong> <span data-label="status"></span>
+                    <div id="consoleDiv" />
                 </div>
             </div>
                     <button name="1" type="button" class="btn btn-block btn-lg btn-primary">A</button>

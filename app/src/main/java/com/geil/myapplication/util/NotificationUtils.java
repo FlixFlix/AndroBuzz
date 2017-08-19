@@ -14,6 +14,7 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Vibrator;
 import android.support.v4.app.NotificationCompat;
 import android.text.Html;
 import android.text.TextUtils;
@@ -157,14 +158,17 @@ public class NotificationUtils {
 
     // Playing notification sound
     public void playNotificationSound() {
-        try {
-            Uri alarmSound = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE
-                    + "://" + mContext.getPackageName() + "/raw/notification");
-            Ringtone r = RingtoneManager.getRingtone(mContext, alarmSound);
-            r.play();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        final Vibrator v = (Vibrator) mContext.getSystemService(Context.VIBRATOR_SERVICE);
+        v.vibrate(5000);
+
+//        try {
+//            Uri alarmSound = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE
+//                    + "://" + mContext.getPackageName() + "/raw/notification");
+//            Ringtone r = RingtoneManager.getRingtone(mContext, alarmSound);
+//            r.play();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
     }
 
     /**
