@@ -148,7 +148,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
             Calendar calendar = Calendar.getInstance();
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z", Locale.ENGLISH);
-            calendar.setTime(sdf.parse(timestamp + " +0000"));
+            calendar.setTime(sdf.parse(timestamp));
 
             Calendar currentTime = Calendar.getInstance();
             calendar.add(Calendar.SECOND, 5);

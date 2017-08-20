@@ -54,7 +54,7 @@ class Push {
         $res['data']['message'] = $this->message;
         $res['data']['image'] = $this->image;
         $res['data']['payload'] = $this->data;
-        $res['data']['timestamp'] = date('Y-m-d G:i:s');
+        $res['data']['timestamp'] = date('Y-m-d G:i:s P');
         $res['data']['uniqueId'] = $this->msgId;
         return $res;
     }
