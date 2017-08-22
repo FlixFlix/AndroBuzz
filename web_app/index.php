@@ -189,12 +189,12 @@ if ( is_ajax() ) {
             transition: 0.125s
         }
         .container-fluid {
-            max-width: 500px;
+            /*max-width: 500px; disabled for dev purposes */
         }
 
         #main-view {
             height: calc(100vh - 40px);
-            max-width: 500px;
+            /*max-width: 500px; disabled for dev purposes */
             position: relative;
         }
 
@@ -276,7 +276,7 @@ if ( is_ajax() ) {
                 </div>
                 <div class="panel-footer">
                     <strong>Status:</strong> <span data-label="status"></span>
-                    <div id="consoleDiv" />
+                    <div id="consoleDiv"></div>
                 </div>
             </div>
                     <button name="1" type="button" class="btn btn-block btn-lg btn-primary">A</button>
