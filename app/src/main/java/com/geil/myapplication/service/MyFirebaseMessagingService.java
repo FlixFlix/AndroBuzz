@@ -72,7 +72,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             LocalBroadcastManager.getInstance(this).sendBroadcast(pushNotification);
             // play notification sound
             NotificationUtils notificationUtils = new NotificationUtils(getApplicationContext());
-            notificationUtils.playNotificationSound();
+//            notificationUtils.playNotificationSound();
 
         } else {
             // If the app is in background, firebase itself handles the notification
@@ -178,9 +178,6 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 pushNotification.putExtra("message", message);
                 LocalBroadcastManager.getInstance(this).sendBroadcast(pushNotification);
 
-                // play notification sound
-                NotificationUtils notificationUtils = new NotificationUtils(getApplicationContext());
-                notificationUtils.playNotificationSound();
             } else {
                 // app is in background, show the notification in notification tray
                 Intent resultIntent = new Intent(getApplicationContext(), MainActivity.class);
@@ -193,9 +190,8 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                     // image is present, show notification with image
                     showNotificationMessageWithBigImage(getApplicationContext(), title, message, timestamp, resultIntent, imageUrl);
                 }
-
-                doVibrate(message);
             }
+            doVibrate(message);
         } catch (JSONException e) {
             Log.e(TAG, "Json Exception: " + e.getMessage());
         } catch (Exception e) {

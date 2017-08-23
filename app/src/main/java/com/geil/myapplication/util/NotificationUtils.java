@@ -87,7 +87,7 @@ public class NotificationUtils {
             }
         } else {
             showSmallNotification(mBuilder, icon, title, message, timeStamp, resultPendingIntent, alarmSound);
-            playNotificationSound();
+//            playNotificationSound();
         }
     }
 
@@ -157,9 +157,9 @@ public class NotificationUtils {
     }
 
     // Playing notification sound
-    public void playNotificationSound() {
-        final Vibrator v = (Vibrator) mContext.getSystemService(Context.VIBRATOR_SERVICE);
-        v.vibrate(5000);
+//    public void playNotificationSound() {
+//        final Vibrator v = (Vibrator) mContext.getSystemService(Context.VIBRATOR_SERVICE);
+//        v.vibrate(5000);
 
 //        try {
 //            Uri alarmSound = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE
@@ -169,7 +169,7 @@ public class NotificationUtils {
 //        } catch (Exception e) {
 //            e.printStackTrace();
 //        }
-    }
+//    }
 
     /**
      * Method checks if the app is in background or not

@@ -152,7 +152,7 @@ if ( is_ajax() ) {
                         var timeOut = setTimeout(function(){
                                 dataref.off();
                                 $('#consoleDiv').append(msgId + "failed to arrive");
-                        }, 5000);
+                        }, 7000);
 
 
                         dataref.on('value', function(snapshot) {
