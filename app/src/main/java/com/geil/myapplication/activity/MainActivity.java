@@ -77,11 +77,11 @@ public class MainActivity extends AppCompatActivity {
         final Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
         int pattern = 0,
-                zzzz = 400,
-                ____ = 800,
-                zz = 150,
+                zzzz = 333,
+                ____ = 750,
+                zz = 100,
                 __ = 100,
-                zzzzzzzzzzz = 4000;
+                zzzzzzzzzzz = 3333;
         try {
             pattern = Integer.parseInt(message);
         } catch (NumberFormatException nfe) {
@@ -89,10 +89,10 @@ public class MainActivity extends AppCompatActivity {
         }
         long[][] patterns = {
                 {0, 0},
-                {0, zzzz},
-                {0, zzzz, ____, zzzz},
-                {0, zzzz, ____, zzzz, ____, zzzz},
-                {0, zzzz, ____, zzzz, ____, zzzz, ____, zzzz},
+                {0, 66,66,66,66,66,66,66},
+                {0, 66,66,66,66,66,66,66, ____, 66,66,66,66,66,66,66},
+                {0, 66,66,66,66,66,66,66, ____, 66,66,66,66,66,66,66, ____, 66,66,66,66,66,66,66},
+                {0, 66,66,66,66,66,66,66, ____, 66,66,66,66,66,66,66, ____, 66,66,66,66,66,66,66, ____, 66,66,66,66,66,66,66},
                 {0, zz, __, zz, __, zz, __, zz, __, zz, __, zz, __, zz, __, zz, __},
                 {0, zzzzzzzzzzz},
                 {0, 0}
