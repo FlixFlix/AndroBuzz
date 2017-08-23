@@ -151,13 +151,13 @@ if ( is_ajax() ) {
 
                         var timeOut = setTimeout(function(){
                                 dataref.off();
-                                $('#consoleDiv').append(msgId + "failed to arrive");
+                                $('#consoleDiv').append(msgId + " failed to arrive<br/>");
                         }, 7000);
 
 
                         dataref.on('value', function(snapshot) {
                             if(snapshot.val() != null){
-                                $('#consoleDiv').append(msgId + " arrived successfully");
+                                $('#consoleDiv').append(msgId + " arrived successfully <br/>");
                                 clearTimeout(timeOut);
                                 dataref.off();
                             }
