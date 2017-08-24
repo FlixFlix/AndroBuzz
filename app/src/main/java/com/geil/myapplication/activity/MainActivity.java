@@ -63,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
                     String message = intent.getStringExtra("message");
 
                     Toast.makeText(getApplicationContext(), "Push notification: " + message, Toast.LENGTH_LONG).show();
-//                    doVibrate(message);
+                    doVibrate(message);
 
                     txtMessage.setText(message);
                 }
@@ -73,32 +73,32 @@ public class MainActivity extends AppCompatActivity {
         displayFirebaseRegId();
     }
 
-//    private void doVibrate(String message) {
-//        final Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-//
-//        int pattern = 0,
-//                zzzz = 400,
-//                ____ = 800,
-//                zz = 150,
-//                __ = 100,
-//                zzzzzzzzzzz = 4000;
-//        try {
-//            pattern = Integer.parseInt(message);
-//        } catch (NumberFormatException nfe) {
-//            System.out.println("Could not parse " + nfe);
-//        }
-//        long[][] patterns = {
-//                {0, 0},
-//                {0, zzzz},
-//                {0, zzzz, ____, zzzz},
-//                {0, zzzz, ____, zzzz, ____, zzzz},
-//                {0, zzzz, ____, zzzz, ____, zzzz, ____, zzzz},
-//                {0, zz, __, zz, __, zz, __, zz, __, zz, __, zz, __, zz, __, zz, __},
-//                {0, zzzzzzzzzzz},
-//                {0, 0}
-//        };
-//        v.vibrate(patterns[pattern], -1);
-//    }
+    private void doVibrate(String message) {
+        final Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
+        int pattern = 0,
+                zzzz = 333,
+                ____ = 999,
+                zz = 66,
+                __ = 66,
+                zzzzzzzzzzz = 3333;
+        try {
+            pattern = Integer.parseInt(message);
+        } catch (NumberFormatException nfe) {
+            System.out.println("Could not parse " + nfe);
+        }
+        long[][] patterns = {
+                {0, 0},
+                {0, 75,66,50,66,50,66,200},
+                {0, 75,66,50,66,50,66,66, ____, 75,66,50,66,50,66,200},
+                {0, 75,66,50,66,50,66,66, ____, 75,66,50,66,50,66,66, ____, 75,66,50,66,50,66,200},
+                {0, 75,66,50,66,50,66,66, ____, 75,66,50,66,50,66,66, ____, 75,66,50,66,50,66,66, ____, 66,66,66,66,66,66,200},
+                {0, zz, __, zz, __, zz, __, zz, __, zz, __, zz, __, zz, __, zz, __},
+                {0, zzzzzzzzzzz},
+                {0, 0}
+        };
+        v.vibrate(patterns[pattern], -1);
+    }
 
 
 

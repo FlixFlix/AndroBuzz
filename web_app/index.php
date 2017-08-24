@@ -151,13 +151,13 @@ if ( is_ajax() ) {
 
                         var timeOut = setTimeout(function(){
                                 dataref.off();
-                                $('#consoleDiv').append(msgId + " failed to arrive<br/>");
+                                $('#consoleDiv').prepend(msgId + " failed to arrive<br/>");
                         }, 7000);
 
 
                         dataref.on('value', function(snapshot) {
                             if(snapshot.val() != null){
-                                $('#consoleDiv').append(msgId + " arrived successfully <br/>");
+                                $('#consoleDiv').prepend(msgId + " arrived successfully <br/>");
                                 clearTimeout(timeOut);
                                 dataref.off();
                             }
@@ -188,6 +188,13 @@ if ( is_ajax() ) {
         * {
             transition: 0.125s
         }
+        #consoleDiv {
+            max-height: 60px;
+            display: inline-block;
+            padding-right: 20px;
+            overflow-x: hidden;
+            overflow-y: scroll;
+        }
         .container-fluid {
             /*max-width: 500px; disabled for dev purposes */
         }
@@ -210,12 +217,6 @@ if ( is_ajax() ) {
         .btn-group > .btn-group:not(:last-child) > .btn {
             border-right: none;
         }
-
-        /*.float-bottom {*/
-            /*position: absolute;*/
-            /*bottom: 0;*/
-            /*width: calc(100% - 30px)*/
-        /*}*/
 
         .panel {
             margin-bottom: 10px;
@@ -275,7 +276,7 @@ if ( is_ajax() ) {
                     </table>
                 </div>
                 <div class="panel-footer">
-                    <strong>Status:</strong> <span data-label="status"></span>
+                    <div><strong>Status:</strong> <span data-label="status"></span></div>
                     <div id="consoleDiv"></div>
                 </div>
             </div>
