@@ -291,6 +291,11 @@ if ( is_ajax() ) {
                     </button>
                 </div>
                 <div class="btn-group">
+                    <button name="7" type="button" class="btn btn-lg  btn-default">
+                        <i class="glyphicon glyphicon glyphicon-repeat"></i>
+                    </button>
+                </div>
+                <div class="btn-group">
                     <button name="6" type="button" class="btn btn-lg  btn-default">
                         <i class="glyphicon glyphicon glyphicon-headphones"></i>
                     </button>
