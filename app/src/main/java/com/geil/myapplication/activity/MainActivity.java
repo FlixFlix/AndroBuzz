@@ -41,7 +41,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-//        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         txtRegId = (TextView) findViewById(R.id.txt_reg_id);
         txtMessage = (TextView) findViewById(R.id.txt_push_message);
 
@@ -63,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
                     String message = intent.getStringExtra("message");
 
                     Toast.makeText(getApplicationContext(), "Push notification: " + message, Toast.LENGTH_LONG).show();
-                    doVibrate(message);
+                    //doVibrate(message);
 
                     txtMessage.setText(message);
                 }
@@ -72,35 +71,6 @@ public class MainActivity extends AppCompatActivity {
 
         displayFirebaseRegId();
     }
-
-    private void doVibrate(String message) {
-        final Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-
-        int pattern = 0,
-                zzzz = 333,
-                ____ = 999,
-                zz = 66,
-                __ = 66,
-                zzzzzzzzzzz = 3333;
-        try {
-            pattern = Integer.parseInt(message);
-        } catch (NumberFormatException nfe) {
-            System.out.println("Could not parse " + nfe);
-        }
-        long[][] patterns = {
-                {0, 0},
-                {0, 75,66,50,66,50,66,200},
-                {0, 75,66,50,66,50,66,66, ____, 75,66,50,66,50,66,200},
-                {0, 75,66,50,66,50,66,66, ____, 75,66,50,66,50,66,66, ____, 75,66,50,66,50,66,200},
-                {0, 75,66,50,66,50,66,66, ____, 75,66,50,66,50,66,66, ____, 75,66,50,66,50,66,66, ____, 66,66,66,66,66,66,200},
-                {0, zz, __, zz, __, zz, __, zz, __, zz, __, zz, __, zz, __, zz, __},
-                {0, zzzzzzzzzzz},
-                {0, 0}
-        };
-        v.vibrate(patterns[pattern], -1);
-    }
-
-
 
     // Fetches reg id from shared preferences
     // and displays on the screen
