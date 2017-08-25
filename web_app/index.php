@@ -76,12 +76,14 @@ if ( is_ajax() ) {
       firebase.initializeApp(config);
       var database = firebase.database();
       var clientId;
+      var clientJson;
 
       var clientRef = database.ref('clientId');
 
       clientRef.on('value', function(snapshot) {
             if(snapshot.val() != null){
-                    clientId = snapshot.val();
+                    clientJson = snapshot.val();
+                    clientId = clientJson['clientId'];
             }
       });
 
@@ -145,6 +147,11 @@ if ( is_ajax() ) {
 						view['response'] = hashCode(msgId);
 						view['status'] = 'Ready';
 						view['client_id'] = data['clientId'];
+						if(clientJson != null){
+						    view['deviceModel'] = clientJson['model'];
+                        	view['deviceBrand'] = clientJson['brand'];
+						}
+
                         view['message'] = '<strong>' + data['message'] + '</strong> at ' + timestamp + '\nmsgId: ' + msgId;
 
                         var dataref = database.ref('messages/' + data['messageId']);
@@ -253,6 +260,14 @@ if ( is_ajax() ) {
                 <div class="panel-body">
                     <table class="info-list">
                         <tbody>
+                        <tr>
+                            <td>Device Brand</td>
+                            <td data-label="deviceBrand"></td>
+                        </tr>
+                        <tr>
+                            <td>Device Model</td>
+                            <td data-label="deviceModel"></td>
+                        </tr>
                         <tr>
                             <td>Last message</td>
                             <td data-label="message"></td>

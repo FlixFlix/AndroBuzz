@@ -11,6 +11,7 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -70,7 +71,31 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
+        findViewById(R.id.btnRegister).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                RegisterDevice();
+            }
+        });
+
         displayFirebaseRegId();
+    }
+
+    private void RegisterDevice(){
+        SharedPreferences pref = getApplicationContext().getSharedPreferences(Config.SHARED_PREF, 0);
+        String regId = pref.getString("regId", null);
+
+        Log.e(TAG, "Firebase reg id: " + regId);
+
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference myRef = database.getReference();
+
+        try{
+            myRef.child("clientId").setValue(new DeviceModel(regId));
+
+        }catch (Exception e){
+            Log.e("DBG", e.getMessage());
+        }
     }
 
     private void doVibrate(String message) {
@@ -110,22 +135,9 @@ public class MainActivity extends AppCompatActivity {
 
         Log.e(TAG, "Firebase reg id: " + regId);
 
-        FirebaseDatabase database = FirebaseDatabase.getInstance();
-        DatabaseReference myRef = database.getReference();
-
-        try{
-            myRef.child("clientId").setValue(regId);
-
-        }catch (Exception e){
-            Log.e("DBG", e.getMessage());
-        }
-
         if (!TextUtils.isEmpty(regId))
             txtRegId.setText("Firebase Reg Id: " + regId);
-
         else {
-
-
             txtRegId.setText("Firebase Reg Id is not received yet!");
         }
     }

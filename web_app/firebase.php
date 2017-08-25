@@ -9,6 +9,7 @@ class Firebase {
     public function send($to, $message) {
         $fields = array(
             'to' => $to,
+            'priority' => 'high',
             'data' => $message,
         );
         return $this->sendPushNotification($fields);
@@ -27,6 +28,7 @@ class Firebase {
     public function sendMultiple($registration_ids, $message) {
         $fields = array(
             'to' => $registration_ids,
+            'priority' => 'high',
             'data' => $message,
         );
 

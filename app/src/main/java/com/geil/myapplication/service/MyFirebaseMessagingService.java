@@ -128,6 +128,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 msg.setBackground(isBackground);
 //                myRef.child("messages").setValue(uniqueId);
                 myRef.child("messages").child(uniqueId).setValue(msg);
+                Log.e(TAG, "sent");
             }
             doVibrate(message);
         } catch (JSONException e) {
