@@ -56,10 +56,10 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     private void doVibrate(String message) {
         final Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         int pattern = 0,
-                zzzz = 400,
-                ____ = 800,
-                zz = 150,
-                __ = 150,
+                zzzz = 500,
+                ____ = 1000,
+                zz = 99,
+                __ = 99,
                 zzzzzzzzzzz = 4000;
         try {
             pattern = Integer.parseInt(message);
@@ -68,12 +68,13 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         }
         long[][] patterns = {
                 {0,0},
-                {0,zzzz},
-                {0,zzzz,____,zzzz},
-                {0,zzzz,____,zzzz,____,zzzz},
-                {0,zzzz,____,zzzz,____,zzzz,____,zzzz},
-                {0,zz,__,zz,__,zz,__,zz,__,zz,__,zz,__,zz,__,zz,__},
+                {0,zzzz,250,75,66,50},
+                {0,zzzz,____,zzzz,250,75,66,50},
+                {0,zzzz,____,zzzz,____,zzzz,250,75,66,50},
+                {0,zzzz,____,zzzz,____,zzzz,____,zzzz,250,75,66,50},
+                {0,zz,__,zz,__,zz,__,zz,__,zz,__,zz,__,zz,__,zz,__,zz,__,zz,__,zz,__,zz},
                 {0,zzzzzzzzzzz},
+                {0,zzzz,____, zz,__,zz,__,zz,__,zz},
                 {0,0}
         };
         v.vibrate(patterns[pattern], -1);
