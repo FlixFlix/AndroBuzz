@@ -24,13 +24,40 @@ clientRef.on('value', function(snapshot) {
 	}
 });
 
+function changePhone() {
+	console.log( 'Changing phone...' );
+}
+
 $( 'document' ).ready( function() {
 	var view = {};
-	var console = $( '#consoleDiv' );
+	var messageList = $( '#consoleDiv' );
 	var mv = $( '#main-view' );
-	// var audio_sent = new Audio( 'sounds/click_04.m4a' );
-	// var audio_delivered = new Audio( 'sounds/beep_short_on.wav' );
-	// var audio_error = new Audio( 'sounds/error.m4a' );
+
+	function getPhones() {
+		var request = {
+			'action': 'getRegisteredDevices',
+		};
+		$.ajax( {
+			type: 'POST',
+			dataType: 'json',
+			url: 'functions.php',
+			data: request,
+			success: function( data ) {
+				// here we create the dropdown options
+				var dropdownHTML = '';
+				var totalPhones = data.length;
+				for ( var i = 0; i < totalPhones; i++ ) {
+					dropdownHTML += '<li><a href=\"javascript:changePhone(\''+data[i]['reg_id']+'\');">' + data[i]['name'] + ' &bull; ' + data[i]['number'] + '</a></li>';
+				}
+				// Get phone NAME instead of manufacturer and model
+				view['registered-phones'] = dropdownHTML;
+				redraw();
+			}
+		} );
+
+	}
+
+	getPhones();
 
 	function redraw( field, value ) {
 		var windowHeight = $( window ).height();
@@ -51,8 +78,6 @@ $( 'document' ).ready( function() {
 	$( '.action' ).click( function() {
 		var message = $( this ).attr( 'name' );
 		redraw( 'status', 'Sending message... ' + message );
-		// audio_sent.play();
-		var json = {"message" : message, "clientId" : clientId};
 		var currentTime = new Date(),
 			hours = currentTime.getHours(),
 			minutes = currentTime.getMinutes();
@@ -65,16 +90,21 @@ $( 'document' ).ready( function() {
 		}
 		var timestamp = hours + ':' + minutes + ':' + seconds;
 		start_time = Date.now();
-		var data = {
+
+		// Prepare data
+		var json = { "message": message, "clientId": clientId };
+		var request = {
 			'action': 'androbuzz',
 			'message': JSON.stringify(json)
 		};
-		data = $( this ).serialize() + '&' + $.param( data );
+		request = $( this ).serialize() + '&' + $.param( request );
+
+		// Send to PHP
 		$.ajax( {
 			type: 'POST',
 			dataType: 'json',
 			url: 'functions.php',
-			data: data,
+			data: request,
 			success: function( data ) {
 				var msg = JSON.parse(data['response'].substring(1, data['response'].length-1));
 				total_ping = Date.now() - start_time;
@@ -101,30 +131,26 @@ $( 'document' ).ready( function() {
 				var timeOut = setTimeout(function(){
 					dataref.off();
 					redraw( 'status', 'Operation timed out. Ready.' );
-					// audio_error.play();
 				}, 15000 );
 
 
 				dataref.on('value', function(snapshot) {
 					if ( snapshot.val() !== null ) {
-						console.append( '<span class="bzzz' + message + '">' + messages[message] + '</span>' ).on( 'click', 'span', function() {
+						messageList.append( '<span class="bzzz' + message + '">' + messages[message] + '</span>' ).on( 'click', 'span', function() {
 							$( this ).animate( { width: 0 }, function() {
 								$( this ).remove();
 							} );
 						} );
 						//view['battery-level'] = ?????????????????????['battery'] + '%';
-						console.find( 'span:last-child' ).attr( 'title', timestamp );
+						messageList.find( 'span:last-child' ).attr( 'title', timestamp );
 						device_ping = Date.now() - start_time - server_ping;
 						redraw( 'ping', $( '[data-label=ping]' ).html() + ' + ' + device_ping + 'ms' );
 						redraw( 'status', 'Ready' );
 						$( '.action' ).blur();
-						// audio_delivered.play();
 						clearTimeout(timeOut);
 						dataref.off();
 					}
 				});
-
-
 
 				redraw();
 			}

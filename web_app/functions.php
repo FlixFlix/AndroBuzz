@@ -65,17 +65,20 @@ function getRegisteredDevices() {
 	$devices[ 0 ] = [
 		"reg_id" => "dwZ4ktuEVNw:APA91bFNsFR6glr9mnlTvQdR0Tijw2PJfH1zPWpnYdksNdX-91voQy5hEJV5SWmnAvaJ4hOifvrFLYrc0VufLosERB-ZukszxTKMvEHxgYq3Yq6rs0Qk8y10U5Rbged9V6CI8BucqWk4",
 		"model"  => "LGE LG-M150",
-		"number" => "773-555-1234",
+		"number" => "773-111-1234",
+		"name"   => "Phoenix 3", // Please store phone name too: Settings > General > About Phone > Name
 	];
 	$devices[ 1 ] = [
-		"reg_id" => "dwZ4ktuEVNw:APA91bFNsFR6glr9mnlTvQdR0Tijw2PJfH1zPWpnYdksNdX-91voQy5hEJV5SWmnAvaJ4hOifvrFLYrc0VufLosERB-ZukszxTKMvEHxgYq3Yq6rs0Qk8y10U5Rbged9V6CI8BucqWk4",
-		"model"  => "LGE LG-M150",
-		"number" => "773-555-1234",
+		"reg_id" => "dlrCBea7mgc:APA91bH9Z1c6EvalxKSEgJxhSlPvTy_0Z3pLRSyEEJuZXLo2pxh6U7vBFP2dJGzUOoKMrCbtFB9Pcn0p2YZt_mT5v-KWwHOzJw_5Sip8E9CdlKOv-xLQCe-soTAEF8kYNqOSxeAGgeaOkVnyo6Qd9f-Jlvnk2jRVYA",
+		"model"  => "Lenovo Moto G5",
+		"number" => "773-222-1234",
+		"name"   => "My Moto",
 	];
 	$devices[ 2 ] = [
-		"reg_id" => "dwZ4ktuEVNw:APA91bFNsFR6glr9mnlTvQdR0Tijw2PJfH1zPWpnYdksNdX-91voQy5hEJV5SWmnAvaJ4hOifvrFLYrc0VufLosERB-ZukszxTKMvEHxgYq3Yq6rs0Qk8y10U5Rbged9V6CI8BucqWk4",
-		"model"  => "LGE LG-M150",
-		"number" => "773-555-1234",
+		"reg_id" => "cGmuOsvR3Tk:APA91bElBLlc93lk5GMWQGkTNYMqSJVS-UEYWqbTUCnT3h070sPXWkzI61K_TF_i63RdSNAZ78FEVjTCCVkThxUGl_fxpbBAp8LcDBnMnGnrNAYvjp_V4YHusFx4Nj27gw4ZEOMJXYBU",
+		"model"  => "ZTE Z981",
+		"number" => "773-333-1234",
+		"name"   => "ZTE Maven",
 	];
 
 	$return = $devices;
@@ -107,6 +110,7 @@ function changeCurrentDevice() {
 
 }
 
+
 function is_ajax() {
 	return isset( $_SERVER[ "HTTP_X_REQUESTED_WITH" ] ) && strtolower( $_SERVER[ "HTTP_X_REQUESTED_WITH" ] ) == "xmlhttprequest";
 }
@@ -114,9 +118,7 @@ function is_ajax() {
 if ( is_ajax() ) {
 	if ( isset( $_POST[ "action" ] ) && ! empty( $_POST[ "action" ] ) ) { //Checks if action value exists
 		$action = $_POST[ "action" ];
-		if ( $action == "androbuzz" ) {
-			androbuzz();
-		}
+		$action();
 		die();
 	}
 }

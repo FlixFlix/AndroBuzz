@@ -36,14 +36,18 @@
         <div id="main-view" class="col-md-12">
             <div class="panel panel-primary">
                 <div class="panel-heading">
-                    <!--<h3 class="panel-title" data-label="device" data-title="client_id">-->
-                        <!--Status Panel-->
-                    <!--</h3>-->
-                    <select class="device-select panel-title">
-                        <option>xxx</option>
-                        <option>yyy</option>
-                    </select>
-
+                    <h3 class="panel-title" data-label="device" data-title="client_id">
+                        Status Panel
+                    </h3>
+                    <div class="dropdown">
+                        <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                            Change Phone
+                            <span class="caret"></span>
+                        </button>
+                        <ul data-label="registered-phones" class="registered-phones dropdown-menu" aria-labelledby="dropdownMenu1">
+                        </ul>
+                    </div>
                     <!--<div class=batteryContainer><span data-label="battery-level">%</span><div class="battery"><div class="level"></div></div></div>-->
                 </div>
                 <div class="panel-body">

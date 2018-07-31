@@ -16,9 +16,18 @@ body {
 	transition: 0.125s;
 }
 
-.device-select {
-	color: #333
-	border-radius:
+.panel-heading {
+	padding: 15px;
+	.dropdown {
+		display: inline-block;
+		float: right;
+		color: #333;
+		margin-top: -5px;
+		.btn {
+			margin: 0 !important;
+			padding: 4px 12px;
+		}
+	}
 }
 
 .abc {
