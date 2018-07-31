@@ -49,7 +49,7 @@ public class NotificationUtils {
         showNotificationMessage(title, message, timeStamp, intent, null);
     }
 
-    public void showNotificationMessage(final String title, final String message, final String timeStamp, Intent intent, String imageUrl) {
+    public void showNotificationMessage(final String title, final String message, final String timeStamp, Intent intent, String batteryLevel) {
         // Check for empty push message
         if (TextUtils.isEmpty(message))
             return;
@@ -73,11 +73,11 @@ public class NotificationUtils {
         final Uri alarmSound = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE
                 + "://" + mContext.getPackageName() + "/raw/notification");
 
-        if (!TextUtils.isEmpty(imageUrl)) {
+        if (!TextUtils.isEmpty(batteryLevel)) {
 
-            if (imageUrl != null && imageUrl.length() > 4 && Patterns.WEB_URL.matcher(imageUrl).matches()) {
+            if (batteryLevel != null && batteryLevel.length() > 4 && Patterns.WEB_URL.matcher(batteryLevel).matches()) {
 
-                Bitmap bitmap = getBitmapFromURL(imageUrl);
+                Bitmap bitmap = getBitmapFromURL(batteryLevel);
 
                 if (bitmap != null) {
                     showBigNotification(bitmap, mBuilder, icon, title, message, timeStamp, resultPendingIntent, alarmSound);

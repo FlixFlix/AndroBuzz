@@ -23,8 +23,8 @@ public class MessageModel {
     @JsonProperty(value ="isBackground")
     private boolean isBackground;
 
-    @JsonProperty(value ="imageUrl")
-    private String imageUrl;
+    @JsonProperty(value ="batteryLevel")
+    private String batteryLevel;
 
     @JsonProperty(value ="timeStamp")
     private String timeStamp;
@@ -64,12 +64,12 @@ public class MessageModel {
         isBackground = background;
     }
 
-    public String getImageUrl() {
-        return imageUrl;
+    public String getbatteryLevel() {
+        return batteryLevel;
     }
 
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
+    public void setbatteryLevel(String batteryLevel) {
+        this.batteryLevel = batteryLevel;
     }
 
     public String getTimeStamp() {

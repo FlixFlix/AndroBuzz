@@ -9,7 +9,6 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.geil.myapplication.activity.MainActivity">
-
     <TextView
         android:id="@+id/txt_push_message"
         android:layout_width="wrap_content"
@@ -20,10 +19,25 @@
         android:gravity="center_horizontal"
         android:textColor="@color/colorPrimary"
         android:textSize="26dp" />
-
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:textStyle="bold"
+        android:textSize="48sp"
+        android:text="ALL GOOD" />
     <TextView
         android:id="@+id/txt_reg_id"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true" />
+
+    <Button
+        android:id="@+id/btnRegister"
+        android:layout_width="match_parent"
+        android:layout_above="@id/txt_reg_id"
+        android:text="Register Device"
+        android:textAllCaps="false"
+        android:gravity="center"
+        android:layout_height="wrap_content" />
 </RelativeLayout>

@@ -2,8 +2,11 @@ package com.geil.myapplication.service;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.BatteryManager;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.os.Vibrator;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
@@ -56,8 +59,8 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     private void doVibrate(String message) {
         final Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         int pattern = 0,
-                zzzz = 500,
-                ____ = 1000,
+                zzzz = 400,
+                ____ = 800,
                 zz = 99,
                 __ = 99,
                 zzzzzzzzzzz = 4000;
@@ -67,17 +70,30 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             System.out.println("Could not parse " + nfe);
         }
         long[][] patterns = {
-                {0,0},
-                {0,zzzz,250,75,66,50},
-                {0,zzzz,____,zzzz,250,75,66,50},
-                {0,zzzz,____,zzzz,____,zzzz,250,75,66,50},
-                {0,zzzz,____,zzzz,____,zzzz,____,zzzz,250,75,66,50},
-                {0,zz,__,zz,__,zz,__,zz,__,zz,__,zz,__,zz,__,zz,__,zz,__,zz,__,zz,__,zz},
-                {0,zzzzzzzzzzz},
-                {0,zzzz,____, zz,__,zz,__,zz,__,zz},
-                {0,0}
+                {0, 0},
+                {0, zzzz},                                                      // A (1)
+                {0, zzzz, ____, zzzz},                                            // B (2)
+                {0, zzzz, ____, zzzz, ____, zzzz},                                  // C (3)
+                {0, zzzz, ____, zzzz, ____, zzzz, ____, zzzz},                        // ⇄ (4)
+                {0, zz, __, zz, __, zz, __, zz, __, zz, __, zz, __, zz, __, zz},              // ⏩ (5)
+                {0, zzzzzzzzzzz},                                               // 🎧 (6)
+                {0, zzzz, ____, zz, __, zz, __, zz, __, zz, ____, zzzz},                 // ↺ (7)
+                {0, 0}
         };
         v.vibrate(patterns[pattern], -1);
+    }
+
+    public float getBatteryLevel() {
+        Intent batteryIntent = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        int level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+        int scale = batteryIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+
+        // Error checking that probably isn't needed but I added just in case.
+        if (level == -1 || scale == -1) {
+            return 50.0f;
+        }
+
+        return ((float) level / (float) scale) * 100.0f;
     }
 
     private void handleDataMessage(String msgId, JSONObject json) {
@@ -86,19 +102,19 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         try {
             JSONObject data = json.getJSONObject("data");
 
-            String title = data.getString("title");
+//            String title = data.getString("title");
             String message = data.getString("message");
             boolean isBackground = data.getBoolean("is_background");
-            String imageUrl = data.getString("image");
+            String batteryLevel = "pula";//data.getString("battery");
             String timestamp = data.getString("timestamp");
             String uniqueId = data.getString("uniqueId");
 //            JSONObject payload = data.getJSONObject("payload");
 
-            Log.e(TAG, "title: " + title);
+            //Log.e(TAG, "title: " + title);
             Log.e(TAG, "message: " + message);
             Log.e(TAG, "isBackground: " + isBackground);
 //            Log.e(TAG, "payload: " + payload.toString());
-            Log.e(TAG, "imageUrl: " + imageUrl);
+            Log.e(TAG, "batteryLevel: " + batteryLevel);
             Log.e(TAG, "timestamp: " + timestamp);
             Log.e(TAG, "msgId: " + msgId);
 
@@ -107,27 +123,32 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             calendar.setTime(sdf.parse(timestamp));
 
             Calendar currentTime = Calendar.getInstance();
-            calendar.add(Calendar.SECOND, 5);
-            if(calendar.before(currentTime)){
+            calendar.add(Calendar.MILLISECOND, 15000);
+            if (calendar.before(currentTime)) {
                 Log.e("DBG", currentTime.toString());
                 Log.e("DBG", calendar.toString());
-                return; //if push message exceeds 5 seconds then we disregard it.
-            }else{
+                return; //if push message exceeds 15 seconds then we disregard it.
+            } else {
+                PowerManager pm = (PowerManager) getApplicationContext().getSystemService(Context.POWER_SERVICE);
+                PowerManager.WakeLock wakeLock = pm.newWakeLock((PowerManager.PARTIAL_WAKE_LOCK), "TAG");
+                wakeLock.acquire(300000);
+//                float batteryPct = getBatteryLevel();
                 FirebaseDatabase database = FirebaseDatabase.getInstance();
                 DatabaseReference myRef = database.getReference();
 
                 MessageModel msg = new MessageModel();
-                msg.setTitle(title);
                 msg.setMessage(message);
                 msg.setTimeStamp(timestamp);
-                msg.setImageUrl(imageUrl);
+//                msg.setbatteryLevel(Float.toString(batteryPct));
                 msg.setId(msgId);
                 msg.setUniqueId(uniqueId);
                 msg.setBackground(isBackground);
 //                myRef.child("messages").setValue(uniqueId);
                 myRef.child("messages").child(uniqueId).setValue(msg);
+                Log.e(TAG, "sent");
+                doVibrate(message);
+//                wakeLock.release();
             }
-            doVibrate(message);
         } catch (JSONException e) {
             Log.e(TAG, "Json Exception: " + e.getMessage());
         } catch (Exception e) {
