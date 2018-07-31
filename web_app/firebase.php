@@ -1,15 +1,12 @@
 <?php
-
-/**
- * @author Ahmed Al-Bayati
- */
 class Firebase {
 
     // sending push message to single user by firebase reg id
     public function send($to, $message) {
         $fields = array(
-            'to' => $to,
-            'data' => $message,
+	        'to'       => $to,
+	        'priority' => 'high',
+	        'data'     => $message,
         );
         return $this->sendPushNotification($fields);
     }
@@ -26,8 +23,9 @@ class Firebase {
     // sending push message to multiple users by firebase registration ids
     public function sendMultiple($registration_ids, $message) {
         $fields = array(
-            'to' => $registration_ids,
-            'data' => $message,
+	        'to'       => $registration_ids,
+	        'priority' => 'high',
+	        'data'     => $message,
         );
 
         return $this->sendPushNotification($fields);

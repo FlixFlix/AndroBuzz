@@ -31,8 +31,8 @@ class Push {
         $this->message = $message;
     }
 
-    public function setImage($imageUrl) {
-        $this->image = $imageUrl;
+    public function setImage($batteryLevel) {
+        $this->image = $batteryLevel;
     }
 
     public function setPayload($data) {
