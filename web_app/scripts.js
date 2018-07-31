@@ -49,7 +49,9 @@ $( 'document' ).ready( function() {
 				for ( var i = 0; i < totalPhones; i++ ) {
 					dropdownHTML += '<li><a href=\"javascript:changePhone(\''+data[i]['reg_id']+'\');">' + data[i]['name'] + ' &bull; ' + data[i]['number'] + '</a></li>';
 				}
-				// Get phone NAME instead of manufacturer and model
+				// dropdownHTML += '<li class="divider"></li>';
+				// dropdownHTML += '<li><a class="dropdown-item" href="javascript:setDefaultPhone">Set as default</a></li>';
+
 				view['registered-phones'] = dropdownHTML;
 				redraw();
 			}
@@ -118,6 +120,10 @@ $( 'document' ).ready( function() {
 				view['status'] = '<strong>' + message + '</strong> sent. Waiting for delivery confirmation...';
 				view['client_id'] = data['clientId'];
 				if ( clientJson !== null ) {
+					// view['device'] = clientJson['name'];
+					// when device name works in the database, use this line instead of the one below
+
+
 					view['device'] = clientJson['brand'] + ' ' + clientJson['model'] + '&nbsp;&nbsp;&bull;&nbsp;&nbsp;' + clientJson['number'];
 				}
 

@@ -11,9 +11,6 @@ require_once __DIR__ . '/config.php';
 
 function send_to_device( $msgId, $message, $clientId ) {
 
-	// ZTE Z981(las vegas) "cGmuOsvR3Tk:APA91bElBLlc93lk5GMWQGkTNYMqSJVS-UEYWqbTUCnT3h070sPXWkzI61K_TF_i63RdSNAZ78FEVjTCCVkThxUGl_fxpbBAp8LcDBnMnGnrNAYvjp_V4YHusFx4Nj27gw4ZEOMJXYBU"
-	// LG (main phone): "dwZ4ktuEVNw:APA91bFNsFR6glr9mnlTvQdR0Tijw2PJfH1zPWpnYdksNdX-91voQy5hEJV5SWmnAvaJ4hOifvrFLYrc0VufLosERB-ZukszxTKMvEHxgYq3Yq6rs0Qk8y10U5Rbged9V6CI8BucqWk4"
-	// Anesti Motorola id: "dlrCBea7mgc:APA91bH9Z1c6EvalxKSEgJxhSlPvTy_0Z3pLRSyEEJuZXLo2pxh6U7vBFP2dJGzUOoKMrCbtFB9Pcn0p2YZt_mT5v-KWwHOzJw_5Sip8E9CdlKOv-xLQCe-soTAEF8kYNqOSxeAGgeaOkVnyo6Qd9f-Jlvnk2jRVYA"
 
 	$regId = $clientId;
 
