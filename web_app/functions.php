@@ -5,8 +5,6 @@
  * Date: 7/30/2018
  * Time: 11:36 PM
  */
-
-
 require_once __DIR__ . '/config.php';
 
 function send_to_device( $msgId, $message, $clientId ) {
@@ -56,28 +54,22 @@ function androbuzz() {
 
 // This function will retrieve a list of registered devices
 function getRegisteredDevices() {
+	require_once __DIR__ . '/firebase.php';
+
+	$firebase = new Firebase();
+	$clientsJson = $firebase->getJson('clients');
+	$clients = json_decode($clientsJson, true);
 	$devices = []; // all devices in the database
-
-	// Demo data for testing
-	$devices[ 0 ] = [
-		"reg_id" => "dwZ4ktuEVNw:APA91bFNsFR6glr9mnlTvQdR0Tijw2PJfH1zPWpnYdksNdX-91voQy5hEJV5SWmnAvaJ4hOifvrFLYrc0VufLosERB-ZukszxTKMvEHxgYq3Yq6rs0Qk8y10U5Rbged9V6CI8BucqWk4",
-		"model"  => "LGE LG-M150",
-		"number" => "773-111-1234",
-		"name"   => "Phoenix 3", // Please store phone name too: Settings > General > About Phone > Name
-	];
-	$devices[ 1 ] = [
-		"reg_id" => "dlrCBea7mgc:APA91bH9Z1c6EvalxKSEgJxhSlPvTy_0Z3pLRSyEEJuZXLo2pxh6U7vBFP2dJGzUOoKMrCbtFB9Pcn0p2YZt_mT5v-KWwHOzJw_5Sip8E9CdlKOv-xLQCe-soTAEF8kYNqOSxeAGgeaOkVnyo6Qd9f-Jlvnk2jRVYA",
-		"model"  => "Lenovo Moto G5",
-		"number" => "773-222-1234",
-		"name"   => "My Moto",
-	];
-	$devices[ 2 ] = [
-		"reg_id" => "cGmuOsvR3Tk:APA91bElBLlc93lk5GMWQGkTNYMqSJVS-UEYWqbTUCnT3h070sPXWkzI61K_TF_i63RdSNAZ78FEVjTCCVkThxUGl_fxpbBAp8LcDBnMnGnrNAYvjp_V4YHusFx4Nj27gw4ZEOMJXYBU",
-		"model"  => "ZTE Z981",
-		"number" => "773-333-1234",
-		"name"   => "ZTE Maven",
-	];
-
+	$i = 0;
+	foreach($clients as $key => $value){
+		$devices[$i] = [
+			"reg_id" => $clients[$key]['clientId'],
+			"model"  => $clients[$key]['model'],
+			"number" => $clients[$key]['number'],
+			"name"   => $clients[$key]['brand'], // Please store phone name too: Settings > General > About Phone > Name
+		];
+		$i++;
+	}
 	$return = $devices;
 
 	echo json_encode( $return );
