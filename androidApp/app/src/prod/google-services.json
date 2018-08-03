@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "644668887527",
+    "firebase_url": "https://androbuzz-prod.firebaseio.com",
+    "project_id": "androbuzz-prod",
+    "storage_bucket": "androbuzz-prod.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:644668887527:android:5fb851b12875eddd",
+        "android_client_info": {
+          "package_name": "com.androbuzz.android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "644668887527-qk8n8168ck8mp977pgl4bquitl81fmfs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA6e8aMnflqfyeXIB1FgCGs0Ps47XwB4C4"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

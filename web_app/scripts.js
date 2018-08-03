@@ -4,8 +4,10 @@ var messages = [
 
 // Initialize Firebase
 var config = {
-	apiKey: "AIzaSyCWYRgBALYoIjZgn1hT7lQbfnfVeqDwEo8",
-	databaseURL: "https://androbuzz-8d0b1.firebaseio.com/"
+	// apiKey: "AIzaSyCWYRgBALYoIjZgn1hT7lQbfnfVeqDwEo8",
+	apiKey: "AIzaSyAc286y-5g5WL4vtSgCsmEV_afxYyO_kYM",
+	databaseURL: "https://androbuzz-dev.firebaseio.com/"
+	// databaseURL: "https://androbuzz-8d0b1.firebaseio.com/"
 };
 firebase.initializeApp(config);
 var database = firebase.database();
@@ -14,19 +16,18 @@ var clientJson;
 var server_ping = 1;
 var firebase_ping = 1;
 var start_time = 1;
+var allDevices;
+var batteryLevel;
+var signalStrength;
 
-var clientRef = database.ref('clientId');
+// var clientRef = database.ref('clientId');
 
-clientRef.on('value', function(snapshot) {
-	if ( snapshot.val() !== null ) {
-		clientJson = snapshot.val();
-		clientId = clientJson['clientId'];
-	}
-});
-
-function changePhone() {
-	console.log( 'Changing phone...' );
-}
+// clientRef.on('value', function(snapshot) {
+// 	if ( snapshot.val() !== null ) {
+// 		clientJson = snapshot.val();
+// 		clientId = clientJson['clientId'];
+// 	}
+// });
 
 $( 'document' ).ready( function() {
 	var view = {};
@@ -45,19 +46,34 @@ $( 'document' ).ready( function() {
 			success: function( data ) {
 				// here we create the dropdown options
 				var dropdownHTML = '';
+				allDevices = data;
 				var totalPhones = data.length;
 				for ( var i = 0; i < totalPhones; i++ ) {
-					dropdownHTML += '<li><a href=\"javascript:changePhone(\''+data[i]['reg_id']+'\');">' + data[i]['name'] + ' &bull; ' + data[i]['number'] + '</a></li>';
+					dropdownHTML += '<li><a class=\"dropDownItem\" id=\"' + data[i]["reg_id"] + '\" href=\"#\">' + data[i]['model'] + ' &bull; ' + data[i]['number'] + '</a></li>';
 				}
 				// dropdownHTML += '<li class="divider"></li>';
 				// dropdownHTML += '<li><a class="dropdown-item" href="javascript:setDefaultPhone">Set as default</a></li>';
 
 				view['registered-phones'] = dropdownHTML;
 				redraw();
+				$(".dropDownItem").click(function(){
+					var regId = $(this).attr("id");
+					clientId = regId;
+					for(var i=0; i<allDevices.length; i++){
+						if(allDevices[i]["reg_id"] === clientId){
+							clientJson = allDevices[i];
+						}
+					}
+					view['client_id'] = clientId;
+					view['device'] = clientJson['name'] + '</br>' + clientJson['model'] + '</br>' + clientJson['number'];
+					redraw();
+					$( "#NOP" ).click();
+				});
 			}
 		} );
-
 	}
+
+	
 
 	getPhones();
 
@@ -100,7 +116,6 @@ $( 'document' ).ready( function() {
 			'message': JSON.stringify(json)
 		};
 		request = $( this ).serialize() + '&' + $.param( request );
-
 		// Send to PHP
 		$.ajax( {
 			type: 'POST',
@@ -108,6 +123,8 @@ $( 'document' ).ready( function() {
 			url: 'functions.php',
 			data: request,
 			success: function( data ) {
+				console.log("androBuzz response: " + JSON.stringify(data));
+				if(data['response'] == "null") return;
 				var msg = JSON.parse(data['response'].substring(1, data['response'].length-1));
 				total_ping = Date.now() - start_time;
 				firebase_ping = data['firebase_ping'];
@@ -124,7 +141,7 @@ $( 'document' ).ready( function() {
 					// when device name works in the database, use this line instead of the one below
 
 
-					view['device'] = clientJson['brand'] + ' ' + clientJson['model'] + '&nbsp;&nbsp;&bull;&nbsp;&nbsp;' + clientJson['number'];
+					view['device'] = clientJson['name'] + '</br>' + clientJson['model'] + '</br>' + clientJson['number'];
 				}
 
 				view['message'] = '<span class="action_pill panel">' + messages[data['message']] + '</span>&nbsp;<span id=timer>0</span> ';
@@ -132,7 +149,7 @@ $( 'document' ).ready( function() {
 
 				view['message_id'] = 'msgId: ' + msgId;
 
-				var dataref = database.ref('messages/' + data['messageId']);
+				var dataref = database.ref('messages/' + clientId + '/' + data['messageId']);
 
 				var timeOut = setTimeout(function(){
 					dataref.off();
@@ -150,6 +167,15 @@ $( 'document' ).ready( function() {
 						//view['battery-level'] = ?????????????????????['battery'] + '%';
 						messageList.find( 'span:last-child' ).attr( 'title', timestamp );
 						device_ping = Date.now() - start_time - server_ping;
+						if(snapshot.child("signalStrength").val() != null){
+							signalStrength = snapshot.child("signalStrength").val();
+							redraw( 'signal-strength', signalStrength);
+						}
+						if(snapshot.child("batteryLevel").val() != null){
+							batteryLevel = snapshot.child("batteryLevel").val();
+							redraw( 'battery-level', batteryLevel + "%");
+						}
+						
 						redraw( 'ping', $( '[data-label=ping]' ).html() + ' + ' + device_ping + 'ms' );
 						redraw( 'status', 'Ready' );
 						$( '.action' ).blur();
@@ -174,9 +200,9 @@ var timer = setInterval( function() {
 }, 1000 );
 
 $( window ).on( 'load', function() {
-	setTimeout( function() {
-		$( "#NOP" ).click();
-	}, 1000 ); // Test connection and initialize view
+	// setTimeout( function() {
+	// 	$( "#NOP" ).click();
+	// }, 1000 ); // Test connection and initialize view
 	$( "#CLEAR" ).on( 'click', function() {
 		$( '#consoleDiv' ).find( 'span' ).slideUp( "normal", function() {
 			$( this ).remove();
