@@ -161,10 +161,10 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 msg.setId(msgId);
                 msg.setUniqueId(uniqueId);
                 msg.setBackground(isBackground);
-                if(isMessageZero(message)){
+//                if (isMessageZero(message)) {
                     listenToSignalStrength(msg, myRef);
-                    return;
-                }
+//                    return;
+//                }
 //                myRef.child("messages").setValue(uniqueId);
                 myRef.child("messages").child(regId).child(uniqueId).setValue(msg);
                 Log.e(TAG, "sent");
@@ -178,16 +178,17 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         }
     }
 
-    private boolean isMessageZero(String message){
-        try{
-            int integer = Integer.parseInt(message);
-            return integer == 0;
-        }catch (Exception e){ }
-        return false;
-    }
+//    private boolean isMessageZero(String message) {
+//        try {
+//            int integer = Integer.parseInt(message);
+//            return integer == 0;
+//        } catch (Exception e) {
+//        }
+//        return false;
+//    }
 
-    private void listenToSignalStrength(final MessageModel mm, final DatabaseReference myRef){
-        final TelephonyManager telephonyManager = (TelephonyManager)this.getSystemService(Context.TELEPHONY_SERVICE);
+    private void listenToSignalStrength(final MessageModel mm, final DatabaseReference myRef) {
+        final TelephonyManager telephonyManager = (TelephonyManager) this.getSystemService(Context.TELEPHONY_SERVICE);
         new Thread(new Runnable() {
             @Override
             public void run() {
