@@ -2,6 +2,7 @@ package com.geil.myapplication.activity;
 
 import android.content.Context;
 import android.os.Build;
+import android.provider.Settings;
 import android.telephony.TelephonyManager;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -28,12 +29,16 @@ public class DeviceModel {
     @JsonProperty("Number")
     private String Number;
 
+    @JsonProperty("Name")
+    private String name;
+
     private WeakReference<Context> contextRef;
 
     public DeviceModel(String clientID, Context context){
         this.clientId = clientID;
-        brand = Build.BRAND;
+        brand = Build.BRAND.toUpperCase();
         model = Build.MODEL;
+        name = Settings.Secure.getString(context.getContentResolver(), "bluetooth_name"); // this gets the user-entered device name
         contextRef = new WeakReference<>(context);
     }
 
@@ -58,19 +63,24 @@ public class DeviceModel {
         this.Number = Number;
     }
 
+    public void setBrand(String brand) {
+        this.brand = brand;
+    }
     public String getBrand() {
         return brand;
     }
 
-    public void setBrand(String brand) {
-        this.brand = brand;
+    public void setName(String name) {
+        this.name = name;
     }
-
-    public String getClientId() {
-        return clientId;
+    public String getName() {
+        return name;
     }
 
     public void setClientId(String clientId) {
         this.clientId = clientId;
+    }
+    public String getClientId() {
+        return clientId;
     }
 }
