@@ -130,11 +130,11 @@ public class MainActivity extends AppCompatActivity {
 
         Log.e(TAG, "Firebase reg id: " + regId);
 
-//        if (!TextUtils.isEmpty(regId))
-//            txtRegId.setText("Firebase Reg Id: " + regId);
-//        else {
-//            txtRegId.setText("Firebase Reg Id is not received yet!");
-//        }
+        if (!TextUtils.isEmpty(regId))
+            txtRegId.setText("Firebase Reg Id: " + regId);
+        else {
+            txtRegId.setText("Firebase Reg Id is not received yet!");
+        }
     }
 
     @Override

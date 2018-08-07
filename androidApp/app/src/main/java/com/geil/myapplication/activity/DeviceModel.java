@@ -34,11 +34,14 @@ public class DeviceModel {
 
     private WeakReference<Context> contextRef;
 
-    public DeviceModel(String clientID, Context context){
+    public DeviceModel(String clientID, Context context) {
         this.clientId = clientID;
         brand = Build.BRAND.toUpperCase();
         model = Build.MODEL;
         name = Settings.Secure.getString(context.getContentResolver(), "bluetooth_name"); // this gets the user-entered device name
+        if (name == null || name.isEmpty()) {
+            name = "Unnamed";
+        }
         contextRef = new WeakReference<>(context);
     }
 
@@ -48,17 +51,23 @@ public class DeviceModel {
 
     @SuppressWarnings("all")
     public String getNumber() {
-        try{
-            TelephonyManager tMgr = (TelephonyManager)contextRef.get().getSystemService(Context.TELEPHONY_SERVICE);
-            return tMgr.getLine1Number();
-        }catch (Exception e){}
+        try {
+            TelephonyManager tMgr = (TelephonyManager) contextRef.get().getSystemService(Context.TELEPHONY_SERVICE);
+            String number = tMgr.getLine1Number();
+            if (number == null || number.isEmpty()) {
+                number = "7735555555";
+            }
+            return number;
+        } catch (Exception e) {
+            return "7735555555";
+        }
 
-        return "";
     }
 
     public void setModel(String model) {
         this.model = model;
     }
+
     public void setNumber(String Number) {
         this.Number = Number;
     }
@@ -66,6 +75,7 @@ public class DeviceModel {
     public void setBrand(String brand) {
         this.brand = brand;
     }
+
     public String getBrand() {
         return brand;
     }
@@ -73,6 +83,7 @@ public class DeviceModel {
     public void setName(String name) {
         this.name = name;
     }
+
     public String getName() {
         return name;
     }
@@ -80,6 +91,7 @@ public class DeviceModel {
     public void setClientId(String clientId) {
         this.clientId = clientId;
     }
+
     public String getClientId() {
         return clientId;
     }
