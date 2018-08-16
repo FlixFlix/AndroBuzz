@@ -82,36 +82,11 @@ public class MainActivity extends AppCompatActivity {
         database = FirebaseDatabase.getInstance();
         theDatabase = database.getReference();
 
-        // Listen to registration status
-        mRegistrationBroadcastReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive( Context context, Intent intent ) {
-                Log.e( TAG, "Notification received." );
-                String message = intent.getStringExtra( "message" );
-                // txtMessage.setText( "xxx" );
-
-                // checking for type intent filter
-                if ( intent.getAction().equals( Config.REGISTRATION_COMPLETE ) ) {
-                    // gcm successfully registered
-                    // now subscribe to `global` topic to receive app wide notifications
-                    FirebaseMessaging.getInstance().subscribeToTopic( Config.TOPIC_GLOBAL );
-                    // Toast.makeText( getApplicationContext(), "Push notification: " + message, Toast.LENGTH_LONG ).show();
-                    Toast.makeText( getApplicationContext(), "Received Firebase Registration Token!" + message, Toast.LENGTH_LONG ).show();
-
-                    // checkRegistrationStatus();
-
-                } else if ( intent.getAction().equals( Config.PUSH_NOTIFICATION ) ) {
-                    // new push notification is received
-
-
-                    //doVibrate(message);
-
-                }
-            }
-        };
 
         // Register button
+
         final Button registerButton = findViewById( R.id.btnRegister );
+        registerButton.setEnabled( false );
         registerButton.setOnClickListener( new View.OnClickListener() {
             @Override
             public void onClick( View view ) {
@@ -239,27 +214,62 @@ public class MainActivity extends AppCompatActivity {
         return inDatabase;
     }
 
+    // Handling received intents
+    private BroadcastReceiver serviceMessageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive( Context context, Intent intent ) {
+
+            Log.e( TAG, "INTENT Received: " + intent );
+
+            // checking for type intent filter
+            if ( intent.getAction().equals( Config.REGISTRATION_COMPLETE ) ) {
+                // // now subscribe to `global` topic to receive app wide notifications
+                // FirebaseMessaging.getInstance().subscribeToTopic( Config.TOPIC_GLOBAL );
+                Toast.makeText( getApplicationContext(), "Received Firebase Registration Token!", Toast.LENGTH_LONG ).show();
+                Log.e( TAG, "Firebase regToken created: " + intent.getStringExtra("regToken") );
+
+                Button registerButton = findViewById( R.id.btnRegister );
+                registerButton.setEnabled( true );
+
+                // checkRegistrationStatus();
+
+            } else if ( intent.getAction().equals( Config.PUSH_NOTIFICATION ) ) {
+                // new push notification is received
+                String message = intent.getStringExtra( "message" );
+                Toast.makeText( getApplicationContext(), "Received Message: " + message, Toast.LENGTH_LONG ).show();
+                Log.e( TAG, "Message received: " + message );
+                //doVibrate(message);
+
+            }
+        }
+
+    };
+
     @Override
     protected void onResume() {
+        LocalBroadcastManager.getInstance( this )
+                .registerReceiver( serviceMessageReceiver,
+                        new IntentFilter( Config.REGISTRATION_COMPLETE ) );
+        LocalBroadcastManager.getInstance( this )
+                .registerReceiver( serviceMessageReceiver,
+                        new IntentFilter( Config.PUSH_NOTIFICATION ) );
         super.onResume();
-
-        checkRegistrationStatus();
-        // register GCM registration complete receiver
-        LocalBroadcastManager.getInstance( this ).registerReceiver( mRegistrationBroadcastReceiver,
-                new IntentFilter( Config.REGISTRATION_COMPLETE ) );
-
-        // register new push message receiver
-        // by doing this, the activity will be notified each time a new message arrives
-        LocalBroadcastManager.getInstance( this ).registerReceiver( mRegistrationBroadcastReceiver,
-                new IntentFilter( Config.PUSH_NOTIFICATION ) );
-
-        // clear the notification area when the app is opened
-        NotificationUtils.clearNotifications( getApplicationContext() );
+        //
+        // // register new push message receiver
+        // // by doing this, the activity will be notified each time a new message arrives
+        // LocalBroadcastManager.getInstance( this ).registerReceiver( mRegistrationBroadcastReceiver,
+        //         new IntentFilter( Config.PUSH_NOTIFICATION ) );
+        //
+        // // clear the notification area when the app is opened
+        // NotificationUtils.clearNotifications( getApplicationContext() );
     }
 
     @Override
     protected void onPause() {
-        LocalBroadcastManager.getInstance( this ).unregisterReceiver( mRegistrationBroadcastReceiver );
+        // LocalBroadcastManager.getInstance( this ).unregisterReceiver( mRegistrationBroadcastReceiver );
+        // Unregister since the activity is not visible
+        LocalBroadcastManager.getInstance( this )
+                .unregisterReceiver( serviceMessageReceiver );
         super.onPause();
     }
 }

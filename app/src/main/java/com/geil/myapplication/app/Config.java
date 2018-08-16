@@ -1,8 +1,5 @@
 package com.geil.myapplication.app;
 
-/**
- * Created by Ahmed Al-Bayati on 28/09/16.
- */
 public class Config {
 
     // global topic to receive app wide push notifications

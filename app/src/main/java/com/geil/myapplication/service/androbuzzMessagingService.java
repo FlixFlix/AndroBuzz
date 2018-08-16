@@ -1,7 +1,6 @@
 package com.geil.myapplication.service;
 
 import android.Manifest;
-import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -10,8 +9,8 @@ import android.content.pm.PackageManager;
 import android.os.BatteryManager;
 import android.os.PowerManager;
 import android.os.Vibrator;
-import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.telephony.CellInfo;
 import android.telephony.CellInfoCdma;
 import android.telephony.CellInfoGsm;
@@ -25,11 +24,8 @@ import android.util.Log;
 import com.androbuzz.android.R;
 import com.geil.myapplication.activity.MessageModel;
 import com.geil.myapplication.app.Config;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
@@ -40,9 +36,30 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 
-public class MyFirebaseMessagingService extends FirebaseMessagingService {
+public class androbuzzMessagingService extends FirebaseMessagingService {
 
-    private static final String t = MyFirebaseMessagingService.class.getSimpleName();
+    private static final String t = androbuzzMessagingService.class.getSimpleName();
+
+    @Override
+    public void onNewToken(String regToken) {
+
+        // Saving registration token to shared preferences
+        SharedPreferences pref = getApplicationContext().getSharedPreferences( Config.SHARED_PREF, 0 );
+        SharedPreferences.Editor editor = pref.edit();
+        editor.putString( "regToken", regToken );
+        editor.apply();
+
+        // If you want to send messages to this application instance or
+        // manage this apps subscriptions on the server side, send the
+        // Instance ID regToken to your app server.
+        // registerDevice(regToken);
+
+        // Notify UI that registration has completed, so the progress indicator can be hidden.
+        Intent registrationComplete = new Intent( Config.REGISTRATION_COMPLETE );
+        registrationComplete.putExtra( "regToken", regToken );
+        LocalBroadcastManager.getInstance( this ).sendBroadcast( registrationComplete );
+
+    }
 
     @Override
     public void onMessageReceived( RemoteMessage remoteMessage ) {
@@ -84,6 +101,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 {0, zzzz, ____, zz, __, zz, __, zz, __, zz, ____, zzzz},                 // ↺ (7)
                 {0, 0}
         };
+        Log.e(t, "bzzzzzzzzzzz");
         vibrator.vibrate( patterns[pattern], -1 );
     }
 
@@ -159,8 +177,10 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 dbEntry.setId( msgId );
                 dbEntry.setmessageDbKey( messageDbKey );
                 // listenToSignalStrength(messageModel, theDatabase);
-                dbEntry.setSignal( getCurrentSignal()[0] );
-                dbEntry.setSignalInfo( getCurrentSignal()[1] );
+                // dbEntry.setSignal( getCurrentSignal()[0] );
+                // dbEntry.setSignalInfo( getCurrentSignal()[1] );
+                dbEntry.setSignal( "3" );
+                dbEntry.setSignalInfo( "(fake signal)" );
 
                 // Add created message entry to database
                 theDatabase.child( "clients" ).child( deviceKey ).child( "messages" ).child( messageDbKey ).setValue( dbEntry );
@@ -250,7 +270,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 //                        messageModel.setSignalInfo(signalOutput);
 //
 //                        SharedPreferences pref = getApplicationContext().getSharedPreferences(Config.SHARED_PREF, 0);
-//                        String token = pref.getString("token", null);
+//                        String token = pref.getString("regToken", null);
 //                        databaseReference.child("messages").child(token).child(messageModel.getmessageDbKey()).setValue(messageModel);
 //                        Log.w(t, "token from signal function: " + token);
 //                        Looper.myLooper().quit();
