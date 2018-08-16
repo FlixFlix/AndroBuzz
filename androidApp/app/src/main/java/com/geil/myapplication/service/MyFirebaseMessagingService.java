@@ -1,91 +1,80 @@
 package com.geil.myapplication.service;
 
+import android.Manifest;
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.BatteryManager;
-import android.os.Handler;
-import android.os.Looper;
 import android.os.PowerManager;
 import android.os.Vibrator;
-import android.support.v4.content.LocalBroadcastManager;
-import android.telephony.PhoneStateListener;
-import android.telephony.SignalStrength;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.telephony.CellInfo;
+import android.telephony.CellInfoCdma;
+import android.telephony.CellInfoGsm;
+import android.telephony.CellInfoLte;
+import android.telephony.CellSignalStrengthCdma;
+import android.telephony.CellSignalStrengthGsm;
+import android.telephony.CellSignalStrengthLte;
 import android.telephony.TelephonyManager;
-import android.text.TextUtils;
 import android.util.Log;
 
+import com.androbuzz.android.R;
 import com.geil.myapplication.activity.MessageModel;
+import com.geil.myapplication.app.Config;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.geil.myapplication.activity.MainActivity;
-import com.geil.myapplication.app.Config;
-import com.geil.myapplication.util.NotificationUtils;
-
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.Locale;
-import java.util.TimeZone;
-
-import static android.telephony.CellSignalStrength.SIGNAL_STRENGTH_GOOD;
-import static android.telephony.CellSignalStrength.SIGNAL_STRENGTH_GREAT;
-import static android.telephony.CellSignalStrength.SIGNAL_STRENGTH_MODERATE;
-import static android.telephony.CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN;
-import static android.telephony.CellSignalStrength.SIGNAL_STRENGTH_POOR;
 
 public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
-    private static final String TAG = MyFirebaseMessagingService.class.getSimpleName();
+    private static final String t = MyFirebaseMessagingService.class.getSimpleName();
 
     @Override
-    public void onMessageReceived(RemoteMessage remoteMessage) {
-        Log.e(TAG, "From: " + remoteMessage.getFrom());
-
-        if (remoteMessage == null)
-            return;
+    public void onMessageReceived( RemoteMessage remoteMessage ) {
+        Log.e( t, "From: " + remoteMessage.getFrom() );
 
         // Check if message contains a data payload.
-        if (remoteMessage.getData().size() > 0) {
-            Log.e(TAG, "Data Payload: " + remoteMessage.getData().toString());
-
+        if ( remoteMessage.getData().size() > 0 ) {
             try {
-                JSONObject json = new JSONObject(remoteMessage.getData().toString());
-                handleDataMessage(remoteMessage.getMessageId(), json);
+                JSONObject json = new JSONObject( remoteMessage.getData().toString() );
+                handleDataMessage( remoteMessage.getMessageId(), json );
             } catch (Exception e) {
-                Log.e(TAG, "Exception: " + e.getMessage());
+                Log.e( t, "Exception: " + e.getMessage() );
             }
-
         }
     }
 
-    private void doVibrate(String message) {
-        final Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-        int pattern = 0,
-                zzzz = 400,
+    private void doVibrate( String command ) {
+        final Vibrator vibrator = (Vibrator) getSystemService( Context.VIBRATOR_SERVICE );
+        int pattern = 0;
+        final int zzzz = 400,
                 ____ = 800,
-                zz = 99,
-                __ = 99,
+                zz = 100,
+                __ = 200,
                 zzzzzzzzzzz = 4000;
         try {
-            pattern = Integer.parseInt(message);
+            pattern = Integer.parseInt( command );
         } catch (NumberFormatException nfe) {
-            System.out.println("Could not parse " + nfe);
-        }
-        if(pattern == 0){
-            //null message
-            return;
+            System.out.println( "Could not parse " + nfe );
         }
 
         long[][] patterns = {
-                {0, 0},
+                {0, 1}, // dummy vibration pattern
                 {0, zzzz},                                                      // A (1)
                 {0, zzzz, ____, zzzz},                                            // B (2)
                 {0, zzzz, ____, zzzz, ____, zzzz},                                  // C (3)
@@ -95,150 +84,198 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 {0, zzzz, ____, zz, __, zz, __, zz, __, zz, ____, zzzz},                 // ↺ (7)
                 {0, 0}
         };
-        v.vibrate(patterns[pattern], -1);
+        vibrator.vibrate( patterns[pattern], -1 );
     }
 
     public float getBatteryLevel() {
-        Intent batteryIntent = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-        int level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-        int scale = batteryIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+        Intent batteryIntent = registerReceiver( null, new IntentFilter( Intent.ACTION_BATTERY_CHANGED ) );
+        int level = batteryIntent.getIntExtra( BatteryManager.EXTRA_LEVEL, -1 );
+        int scale = batteryIntent.getIntExtra( BatteryManager.EXTRA_SCALE, -1 );
 
         // Error checking that probably isn't needed but I added just in case.
-        if (level == -1 || scale == -1) {
+        if ( level == -1 || scale == -1 ) {
             return 50.0f;
         }
 
         return ((float) level / (float) scale) * 100.0f;
     }
 
-    private void handleDataMessage(String msgId, JSONObject json) {
-        Log.e(TAG, "push json: " + json.toString());
+    private void handleDataMessage( String msgId, JSONObject json ) {
+        Log.e( t, "push json: " + json.toString() );
 
         try {
-            SharedPreferences pref = getApplicationContext().getSharedPreferences(Config.SHARED_PREF, 0);
-            String regId = pref.getString("regId", null);
+            PowerManager pm = (PowerManager) getApplicationContext().getSystemService( Context.POWER_SERVICE );
+            PowerManager.WakeLock wakeLock = pm.newWakeLock( (PowerManager.PARTIAL_WAKE_LOCK), "t" );
+            wakeLock.acquire( 300_000 );
 
-            JSONObject data = json.getJSONObject("data");
+            SharedPreferences pref = getApplicationContext().getSharedPreferences( Config.SHARED_PREF, 0 );
+            SharedPreferences.Editor editor = pref.edit();
 
-//            String title = data.getString("title");
-            String message = data.getString("message");
-            boolean isBackground = data.getBoolean("is_background");
-            String batteryLevel = String.valueOf(getBatteryLevel());
-            String timestamp = data.getString("timestamp");
-            String uniqueId = data.getString("uniqueId");
-//            JSONObject payload = data.getJSONObject("payload");
+            String deviceKey = pref.getString( "deviceKey", null );
 
-            //Log.e(TAG, "title: " + title);
-            Log.e(TAG, "message: " + message);
-            Log.e(TAG, "isBackground: " + isBackground);
-//            Log.e(TAG, "payload: " + payload.toString());
-            Log.e(TAG, "batteryLevel: " + batteryLevel);
-            Log.e(TAG, "timestamp: " + timestamp);
-            Log.e(TAG, "msgId: " + msgId);
+            JSONObject data = json.getJSONObject( "data" );
 
-            Calendar calendar = Calendar.getInstance();
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z", Locale.ENGLISH);
-            calendar.setTime(sdf.parse(timestamp));
+            String timestamp = data.getString( "timestamp" );
+            Log.e( t, "Incoming message timestamp: " + timestamp );
+            String messageDbKey = data.getString( "messageDbKey" );
+            String command = data.getString( "command" );
+
+            Log.e( t, "command: " + command );
+            Log.e( t, "msgId: " + msgId );
+
+            Calendar time = Calendar.getInstance();
+            SimpleDateFormat sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss Z", Locale.ENGLISH );
+            time.setTime( sdf.parse( timestamp ) );
 
             Calendar currentTime = Calendar.getInstance();
-            calendar.add(Calendar.MILLISECOND, 15000);
-            if (calendar.before(currentTime)) {
-                Log.e("DBG", currentTime.toString());
-                Log.e("DBG", calendar.toString());
-                return; //if push message exceeds 15 seconds then we disregard it.
+            time.add( Calendar.MILLISECOND, 15_000 );
+
+            if ( time.before( currentTime ) ) {
+                Log.e( t, "Expired message. Disregarded." );
             } else {
-                PowerManager pm = (PowerManager) getApplicationContext().getSystemService(Context.POWER_SERVICE);
-                PowerManager.WakeLock wakeLock = pm.newWakeLock((PowerManager.PARTIAL_WAKE_LOCK), "TAG");
-                wakeLock.acquire(300000);
-//                float batteryPct = getBatteryLevel();
+
+                String lastMessageTimeString = pref.getString( "lastMessageTime", "2000-01-01 12:00:00 -05:00" );
+                Calendar lastMessageTime = Calendar.getInstance();
+                lastMessageTime.setTime( sdf.parse( lastMessageTimeString ) );
+                lastMessageTime.add( Calendar.MILLISECOND, 4_000 );
+                editor.putString( "lastMessageTime", sdf.format( currentTime.getTime() ) );
+                editor.apply();
+                if ( currentTime.after( lastMessageTime ) ) {
+                    doVibrate( command );
+                } else {
+                    // Consecutive messages received too close to each other
+                    doVibrate( getString( R.string.vibrationPatternSkip ) );
+                }
+
                 FirebaseDatabase database = FirebaseDatabase.getInstance();
-                DatabaseReference myRef = database.getReference();
+                DatabaseReference theDatabase = database.getReference();
 
-                MessageModel msg = new MessageModel();
-                msg.setMessage(message);
-                msg.setTimeStamp(timestamp);
-                msg.setbatteryLevel(batteryLevel);
-                msg.setId(msgId);
-                msg.setUniqueId(uniqueId);
-                msg.setBackground(isBackground);
-//                if (isMessageZero(message)) {
-                    listenToSignalStrength(msg, myRef);
-//                    return;
-//                }
-//                myRef.child("messages").setValue(uniqueId);
-                myRef.child("messages").child(regId).child(uniqueId).setValue(msg);
-                Log.e(TAG, "sent");
-                doVibrate(message);
-//                wakeLock.release();
+                // Creating a new database entry for the received message
+                MessageModel dbEntry = new MessageModel();
+
+                dbEntry.setbatteryLevel( String.valueOf( getBatteryLevel() ) );
+                dbEntry.setCommand( command );
+                dbEntry.setTimeStamp( timestamp );
+                dbEntry.setId( msgId );
+                dbEntry.setmessageDbKey( messageDbKey );
+                // listenToSignalStrength(messageModel, theDatabase);
+                dbEntry.setSignal( getCurrentSignal()[0] );
+                dbEntry.setSignalInfo( getCurrentSignal()[1] );
+
+                // Add created message entry to database
+                theDatabase.child( "clients" ).child( deviceKey ).child( "messages" ).child( messageDbKey ).setValue( dbEntry );
+
+                // Get existing messages and remove the oldest ones
+                // TODO This cleanup should probably be done by the web app on initial load / device selection (if at all - record keeping?)
+                // theDatabase.child( "clients" ).child( deviceKey ).child( "messages" ).addListenerForSingleValueEvent( new ValueEventListener() {
+                //     @Override
+                //     public void onDataChange( @NonNull DataSnapshot data ) {
+                //         if ( data.exists() ) {
+                //             if ( data.getChildrenCount() > 10 ) { // Remove old children
+                //             }
+                //         }
+                //     }
+                //
+                //     @Override
+                //     public void onCancelled( @NonNull DatabaseError databaseError ) {
+                //     }
+                // } );
+
             }
+            wakeLock.release();
+            System.gc();
         } catch (JSONException e) {
-            Log.e(TAG, "Json Exception: " + e.getMessage());
+            Log.e( t, "Json Exception: " + e.getMessage() );
         } catch (Exception e) {
-            Log.e(TAG, "Exception: " + e.getMessage());
+            Log.e( t, "Exception: " + e.getMessage() );
         }
+
     }
 
-//    private boolean isMessageZero(String message) {
-//        try {
-//            int integer = Integer.parseInt(message);
-//            return integer == 0;
-//        } catch (Exception e) {
-//        }
-//        return false;
-//    }
-
-    private void listenToSignalStrength(final MessageModel mm, final DatabaseReference myRef) {
-        final TelephonyManager telephonyManager = (TelephonyManager) this.getSystemService(Context.TELEPHONY_SERVICE);
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                Looper.prepare();
-                telephonyManager.listen(new PhoneStateListener() {
-                    @Override
-                    public void onSignalStrengthsChanged(final SignalStrength signalStrength) {
-                        telephonyManager.listen(this, PhoneStateListener.LISTEN_NONE);
-                        int signalSupport = signalStrength.getGsmSignalStrength();
-                        String signalOutput = "";
-                        if(signalSupport == 99){
-                            signalOutput = "Unknown";
-                            if(android.os.Build.VERSION.SDK_INT >= 23){
-                                switch (signalStrength.getLevel()){
-                                    case SIGNAL_STRENGTH_POOR:
-                                        signalOutput = "Weak";
-                                        break;
-                                    case SIGNAL_STRENGTH_MODERATE:
-                                        signalOutput = "Average";
-                                        break;
-                                    case SIGNAL_STRENGTH_GOOD:
-                                        signalOutput = "Good";
-                                        break;
-                                    case SIGNAL_STRENGTH_GREAT:
-                                        signalOutput = "Great";
-                                        break;
-                                }
-                            }
-                        }else if(signalSupport >= 30){
-                            signalOutput = "Great";
-                        }else if(signalSupport >= 20){
-                            signalOutput = "Good";
-                        }else if(signalSupport >= 3){
-                            signalOutput = "Average";
-                        }else {
-                            signalOutput = "Weak";
-                        }
-                        mm.setSignalStrength(signalOutput);
-
-                        SharedPreferences pref = getApplicationContext().getSharedPreferences(Config.SHARED_PREF, 0);
-                        String regId = pref.getString("regId", null);
-                        myRef.child("messages").child(regId).child(mm.getUniqueId()).setValue(mm);
-
-                        Looper.myLooper().quit();
-
+    private String[] getCurrentSignal() {
+        String signalOutput = "Unknown", fullSignalInfo = "Unknown";
+        try {
+            final TelephonyManager tm = (TelephonyManager) this.getSystemService( Context.TELEPHONY_SERVICE );
+            if ( ActivityCompat.checkSelfPermission( this, Manifest.permission.ACCESS_COARSE_LOCATION ) != PackageManager.PERMISSION_GRANTED ) {
+                for (final CellInfo info : tm.getAllCellInfo()) {
+                    if ( info instanceof CellInfoGsm ) {
+                        final CellSignalStrengthGsm gsm = ((CellInfoGsm) info).getCellSignalStrength();
+                        fullSignalInfo = String.valueOf( gsm );
+                        signalOutput = String.valueOf( gsm.getLevel() );
+                    } else if ( info instanceof CellInfoCdma ) {
+                        final CellSignalStrengthCdma cdma = ((CellInfoCdma) info).getCellSignalStrength();
+                        fullSignalInfo = String.valueOf( cdma );
+                        signalOutput = String.valueOf( cdma.getLevel() );
+                    } else if ( info instanceof CellInfoLte ) {
+                        final CellSignalStrengthLte lte = ((CellInfoLte) info).getCellSignalStrength();
+                        fullSignalInfo = String.valueOf( lte );
+                        signalOutput = String.valueOf( lte.getLevel() );
+                        signalOutput = "4";
+                    } else {
+                        Log.e( t, "Unknown type of cell signal?" );
+                        throw new Exception( "Unknown type of cell signal!" );
                     }
-                }, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
-
-                Looper.loop();
+                }
             }
-        }).start();
+
+        } catch (Exception e) {
+            Log.e( t, "Unable to obtain cell signal information", e );
+        }
+        Log.e( t, signalOutput + "(" + fullSignalInfo + ")" );
+        return new String[]{signalOutput, fullSignalInfo};
     }
+//    private void listenToSignalStrength(final MessageModel messageModel, final DatabaseReference databaseReference) {
+//        Log.e(t, "Listening to signal strength changes...");
+//        Log.e(t, "Currently it's " + signalOutput);
+//        final TelephonyManager telephonyManager = (TelephonyManager) this.getSystemService(Context.TELEPHONY_SERVICE);
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                Looper.prepare();
+//                telephonyManager.listen(new PhoneStateListener() {
+//                    @Override
+//                    public void onSignalStrengthsChanged(final SignalStrength signalStrength) {
+//                        telephonyManager.listen(this, PhoneStateListener.LISTEN_NONE);
+//                        int signalSupport = signalStrength.getGsmSignalStrength();
+//                        if (signalSupport == 99) {
+//                            if (android.os.Build.VERSION.SDK_INT >= 23) {
+//                                switch (signalStrength.getLevel()) {
+//                                    case SIGNAL_STRENGTH_POOR:
+//                                        signalOutput = "Weak";
+//                                        break;
+//                                    case SIGNAL_STRENGTH_MODERATE:
+//                                        signalOutput = "Average";
+//                                        break;
+//                                    case SIGNAL_STRENGTH_GOOD:
+//                                        signalOutput = "Good";
+//                                        break;
+//                                    case SIGNAL_STRENGTH_GREAT:
+//                                        signalOutput = "Great";
+//                                        break;
+//                                }
+//                            }
+//                        } else if (signalSupport >= 30) {
+//                            signalOutput = "Great";
+//                        } else if (signalSupport >= 20) {
+//                            signalOutput = "Good";
+//                        } else if (signalSupport >= 3) {
+//                            signalOutput = "Average";
+//                        } else {
+//                            signalOutput = "Weak";
+//                        }
+//                        messageModel.setSignalInfo(signalOutput);
+//
+//                        SharedPreferences pref = getApplicationContext().getSharedPreferences(Config.SHARED_PREF, 0);
+//                        String token = pref.getString("token", null);
+//                        databaseReference.child("messages").child(token).child(messageModel.getmessageDbKey()).setValue(messageModel);
+//                        Log.w(t, "token from signal function: " + token);
+//                        Looper.myLooper().quit();
+//
+//                    }
+//                }, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
+//
+//                Looper.loop();
+//            }
+//        }).start();
+//    }
 }

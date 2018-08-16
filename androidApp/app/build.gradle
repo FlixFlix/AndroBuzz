@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 27
+    compileSdkVersion 26
     defaultConfig {
         applicationId "com.androbuzz.android"
-        minSdkVersion 15
+        minSdkVersion 24
         targetSdkVersion 27
         versionCode 1
         versionName "1.0"
@@ -32,7 +32,6 @@ android {
             dimension "mode"
             applicationId "com.androbuzz.android.DEV"
         }
-
         prod {
             dimension "mode"
             applicationId "com.androbuzz.android"
@@ -45,17 +44,14 @@ ext.FIREBASE_VERSION = "16.0.1"
 ext.FIREBASE__MESSAGING_VERSION = "17.1.0"
 ext.JACKSON_VERSION = "2.9.6"
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "com.android.support:appcompat-v7:$SUPPORT_VERSION"
-
     implementation "com.google.firebase:firebase-core:$FIREBASE_VERSION"
     implementation "com.google.firebase:firebase-messaging:$FIREBASE__MESSAGING_VERSION"
     implementation "com.google.firebase:firebase-database:$FIREBASE_VERSION"
-
     implementation "com.fasterxml.jackson.core:jackson-core:$JACKSON_VERSION"
     implementation "com.fasterxml.jackson.core:jackson-annotations:$JACKSON_VERSION"
     implementation "com.fasterxml.jackson.core:jackson-databind:$JACKSON_VERSION"
-
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'

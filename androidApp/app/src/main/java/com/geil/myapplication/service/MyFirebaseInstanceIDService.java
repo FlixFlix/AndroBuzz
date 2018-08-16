@@ -21,10 +21,10 @@ public class MyFirebaseInstanceIDService extends FirebaseInstanceIdService {
         super.onTokenRefresh();
         String refreshedToken = FirebaseInstanceId.getInstance().getToken();
 
-        // Saving reg id to shared preferences
-        storeRegIdInPref(refreshedToken);
+        // Saving registration token to shared preferences
+        storeTokenInPref(refreshedToken);
 
-        // sending reg id to your server
+        // sending registration token to your server
         sendRegistrationToServer(refreshedToken);
 
         // Notify UI that registration has completed, so the progress indicator can be hidden.
@@ -38,10 +38,10 @@ public class MyFirebaseInstanceIDService extends FirebaseInstanceIdService {
         Log.e(TAG, "sendRegistrationToServer: " + token);
     }
 
-    private void storeRegIdInPref(String token) {
+    private void storeTokenInPref(String token) {
         SharedPreferences pref = getApplicationContext().getSharedPreferences(Config.SHARED_PREF, 0);
         SharedPreferences.Editor editor = pref.edit();
-        editor.putString("regId", token);
+        editor.putString("token", token);
         editor.commit();
     }
 }
