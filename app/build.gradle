@@ -1,27 +1,11 @@
-buildscript {
-    repositories {
-        google()
-        maven { url 'https://maven.google.com' }
-        jcenter()
-    }
-
-    dependencies {
-        classpath 'com.android.tools.build:gradle:3.1.3'
-        classpath 'com.google.gms:google-services:3.3.1'
-        classpath 'com.google.firebase:firebase-plugins:1.1.5'
-    }
-}
-
-
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 24
-    buildToolsVersion '27.0.3'
+    compileSdkVersion 26
     defaultConfig {
         applicationId "com.androbuzz.android"
-        minSdkVersion 15
-        targetSdkVersion 24
+        minSdkVersion 24
+        targetSdkVersion 27
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
@@ -40,20 +24,37 @@ android {
         exclude 'META-INF/LICENSE.txt'
         exclude 'META-INF/NOTICE.txt'
     }
+
+    flavorDimensions "mode"
+
+    productFlavors {
+        dev {
+            dimension "mode"
+            applicationId "com.androbuzz.android.DEV"
+        }
+        prod {
+            dimension "mode"
+            applicationId "com.androbuzz.android"
+        }
+    }
 }
 
+ext.SUPPORT_VERSION = "27.1.1"
+ext.FIREBASE_VERSION = "16.0.1"
+ext.FIREBASE__MESSAGING_VERSION = "17.1.0"
+ext.JACKSON_VERSION = "2.9.6"
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    })
-    compile 'com.android.support:appcompat-v7:24.0.0-beta1'
-    testCompile 'junit:junit:4.12'
-
-    compile 'com.google.firebase:firebase-messaging:9.6.0'
-    compile 'com.google.firebase:firebase-database:9.6.0'
-    compile 'com.firebase:firebase-client-android:2.3.1'
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "com.android.support:appcompat-v7:$SUPPORT_VERSION"
+    implementation "com.google.firebase:firebase-core:$FIREBASE_VERSION"
+    implementation "com.google.firebase:firebase-messaging:$FIREBASE__MESSAGING_VERSION"
+    implementation "com.google.firebase:firebase-database:$FIREBASE_VERSION"
+    implementation "com.fasterxml.jackson.core:jackson-core:$JACKSON_VERSION"
+    implementation "com.fasterxml.jackson.core:jackson-annotations:$JACKSON_VERSION"
+    implementation "com.fasterxml.jackson.core:jackson-databind:$JACKSON_VERSION"
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 }
-
 // ADD THIS AT THE BOTTOM
 apply plugin: 'com.google.gms.google-services'

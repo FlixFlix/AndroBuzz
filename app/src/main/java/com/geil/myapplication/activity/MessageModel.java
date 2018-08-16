@@ -6,69 +6,81 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 /**
  * Created by CaptainStosha on 8/19/2017.
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonIgnoreProperties( ignoreUnknown = true )
 public class MessageModel {
 
-    public MessageModel(){}
+    public MessageModel() {
+    }
 
-    @JsonProperty(value ="title")
+    @JsonProperty( value = "title" )
     private String title;
 
-    @JsonProperty(value ="message")
-    private String message;
+    @JsonProperty( value = "command" )
+    private String command;
 
-    @JsonProperty(value ="id")
+    @JsonProperty( value = "id" )
     private String id;
 
-    @JsonProperty(value ="isBackground")
-    private boolean isBackground;
-
-    @JsonProperty(value ="batteryLevel")
+    @JsonProperty( value = "batteryLevel" )
     private String batteryLevel;
 
-    @JsonProperty(value ="timeStamp")
+    @JsonProperty( value = "timeStamp" )
     private String timeStamp;
 
-    @JsonProperty(value ="uniqueId")
-    private String uniqueId;
+    @JsonProperty( value = "messageDbKey" )
+    private String messageDbKey;
+
+    @JsonProperty( value = "signal" )
+    private String signal;
+
+    public String getSignal() {
+        return signal;
+    }
+
+    public void setSignal( String signal ) {
+        this.signal = signal;
+    }
+
+    @JsonProperty( value = "signalInfo" )
+    private String signalInfo;
+
+    public String getSignalInfo() {
+        return signalInfo;
+    }
+
+    public void setSignalInfo( String signalInfo ) {
+        this.signalInfo = signalInfo;
+    }
 
     public String getTitle() {
         return title;
     }
 
-    public void setTitle(String title) {
+    public void setTitle( String title ) {
         this.title = title;
     }
 
-    public String getMessage() {
-        return message;
+    public String getCommand() {
+        return command;
     }
 
-    public void setMessage(String message) {
-        this.message = message;
+    public void setCommand( String command ) {
+        this.command = command;
     }
 
     public String getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId( String id ) {
         this.id = id;
-    }
-
-    public boolean isBackground() {
-        return isBackground;
-    }
-
-    public void setBackground(boolean background) {
-        isBackground = background;
     }
 
     public String getbatteryLevel() {
         return batteryLevel;
     }
 
-    public void setbatteryLevel(String batteryLevel) {
+    public void setbatteryLevel( String batteryLevel ) {
         this.batteryLevel = batteryLevel;
     }
 
@@ -76,15 +88,16 @@ public class MessageModel {
         return timeStamp;
     }
 
-    public void setTimeStamp(String timeStamp) {
+    public void setTimeStamp( String timeStamp ) {
         this.timeStamp = timeStamp;
     }
 
-    public String getUniqueId() {
-        return uniqueId;
+    public String getmessageDbKey() {
+        return messageDbKey;
     }
 
-    public void setUniqueId(String uniqueId) {
-        this.uniqueId = uniqueId;
+    public void setmessageDbKey( String messageDbKey ) {
+        this.messageDbKey = messageDbKey;
     }
+
 }
