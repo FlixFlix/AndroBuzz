@@ -27,8 +27,22 @@ public class MessageModel {
     @JsonProperty( value = "timeStamp" )
     private String timeStamp;
 
-    @JsonProperty( value = "messageDbKey" )
-    private String messageDbKey;
+    @JsonProperty( value = "extras" )
+    private String extras;
+    public void setExtras( String extras ) {
+        this.extras = extras;
+    }
+
+
+    // @JsonProperty( value = "messageDbKey" )
+    // private String messageDbKey;
+    // public String getmessageDbKey() {
+    //     return messageDbKey;
+    // }
+    //
+    // public void setmessageDbKey( String messageDbKey ) {
+    //     this.messageDbKey = messageDbKey;
+    // }
 
     @JsonProperty( value = "signal" )
     private String signal;
@@ -92,12 +106,5 @@ public class MessageModel {
         this.timeStamp = timeStamp;
     }
 
-    public String getmessageDbKey() {
-        return messageDbKey;
-    }
-
-    public void setmessageDbKey( String messageDbKey ) {
-        this.messageDbKey = messageDbKey;
-    }
 
 }

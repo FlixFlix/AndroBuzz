@@ -1,19 +1,26 @@
 package com.geil.myapplication.activity;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -22,36 +29,36 @@ import android.widget.Toast;
 
 import com.androbuzz.android.R;
 import com.geil.myapplication.app.Config;
-import com.geil.myapplication.util.NotificationUtils;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.TimeZone;
+
+import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
+import static android.Manifest.permission.READ_PHONE_STATE;
+
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getSimpleName();
-    private BroadcastReceiver mRegistrationBroadcastReceiver;
-    private TextView txtToken, txtMessage, txtRegStatus;
-    private static final String permissionPhoneState = Manifest.permission.READ_PHONE_STATE;
-    private static final String permissionCoarseLocation = Manifest.permission.ACCESS_COARSE_LOCATION;
-    private static final int REQUEST_CODE = 1337;
+    private final int permissionCodeLocation = 1, permissionCodePhone = 2;
+    private TextView txtMessage, txtStatus;
 
     SharedPreferences pref;
     SharedPreferences.Editor editor;
-    String token;
-    String deviceKey;
     FirebaseDatabase database;
     DatabaseReference theDatabase;
-    DeviceModel theDevice;
+    Button registerButton;
+
+    public String getToken() {
+        return pref.getString( "regToken", null );
+    }
 
     @Override
     protected void onCreate( Bundle savedInstanceState ) {
@@ -59,24 +66,20 @@ public class MainActivity extends AppCompatActivity {
         setContentView( R.layout.activity_main );
         getWindow().addFlags( WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON );
 
+
+        ActivityCompat.requestPermissions( this, new String[] {ACCESS_COARSE_LOCATION, READ_PHONE_STATE}, permissionCodeLocation );
+
+
+
+
         // Set up shared preferences
         pref = getApplicationContext().getSharedPreferences( Config.SHARED_PREF, 0 );
         editor = pref.edit();
 
-        token = pref.getString( "token", null );
-        Log.e( TAG, String.valueOf(token) );
-
-        // Set up device object
-        theDevice = new DeviceModel(token, this );
-        deviceKey = theDevice.getName() + " (" + theDevice.getSerial() + ") ";
-        editor.putString( "lastMessageTime", "2000-01-01 12:00:00 -05:00" );
-        editor.putString( "deviceKey", deviceKey );
-        editor.apply();
-
         // Set up text views
-        txtToken = findViewById( R.id.txt_reg_id );
-        txtRegStatus = findViewById( R.id.txt_reg_status );
         txtMessage = findViewById( R.id.txt_main_message );
+        txtStatus = findViewById( R.id.txt_status );
+        txtStatus.setMovementMethod( new ScrollingMovementMethod() );
 
         // Initialize database
         database = FirebaseDatabase.getInstance();
@@ -84,120 +87,100 @@ public class MainActivity extends AppCompatActivity {
 
 
         // Register button
-
-        final Button registerButton = findViewById( R.id.btnRegister );
-        registerButton.setEnabled( false );
+        registerButton = findViewById( R.id.btnRegister );
+        if ( !pref.contains( "regToken" ) ) {
+            registerButton.setEnabled( false );
+        } else {
+            Status( "Stored token exists: " + pref.getString( "regToken", null ) );
+            registerButton.setText( R.string.alreadyregistered );
+        }
         registerButton.setOnClickListener( new View.OnClickListener() {
             @Override
             public void onClick( View view ) {
-                inDatabase = false;
-                RegisterDevice();
-                // checkRegistrationStatus();
-                Log.e( TAG, "Registration date: " + theDevice.getRegDate() );
+                registerDevice();
+                // checkRegistration();
             }
         } );
 
-        // checkRegistrationStatus();
+        // checkRegistration();
     }
 
-    private void RegisterDevice() {
-        Log.e( TAG, "Registering..." );
-        if ( ActivityCompat.checkSelfPermission( this, permissionPhoneState ) == PackageManager.PERMISSION_DENIED ) {
-            ActivityCompat.requestPermissions( this, new String[]{permissionPhoneState}, REQUEST_CODE );
+    public void Status( String text ) {
+        Calendar c = Calendar.getInstance();
+        SimpleDateFormat df = new SimpleDateFormat( "HH:mm:ss" );
+        df.setTimeZone( TimeZone.getTimeZone( "America/Chicago" ) );
+        String formattedDate = df.format( c.getTime() );
+        String status = formattedDate + " " + text;
+        txtStatus.append( status.substring( 0, Math.min( 100, status.length() ) ) + "\n" );
+        while (txtStatus.canScrollVertically( 1 )) {
+            txtStatus.scrollBy( 0, 1 );
         }
-        if ( ActivityCompat.checkSelfPermission( this, permissionCoarseLocation ) == PackageManager.PERMISSION_DENIED ) {
-            ActivityCompat.requestPermissions( this, new String[]{permissionCoarseLocation}, REQUEST_CODE );
-        }
+    }
 
+    public void Message( String text ) {
+        txtMessage.setText( text );
+        // Snackbar.make( txtMessage, text, Snackbar.LENGTH_LONG ).show();
+    }
+
+    public void registerDevice() {
+        Status( "Registering..." );
         try {
-            // Refresh device
-            theDevice = new DeviceModel( token, this );
+            // Set up device object
+            DeviceModel theDevice = new DeviceModel( getToken(), this );
+
+            editor.putString( "lastMessageTime", "2000-01-01 12:00:00 -05:00" );
+            editor.putString( "deviceKey", theDevice.getDeviceKey() );
+            editor.apply();
 
             // Update registration date
             SimpleDateFormat currentTimeSdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss" );
             currentTimeSdf.setTimeZone( TimeZone.getTimeZone( "America/Chicago" ) );
             theDevice.setRegDate( currentTimeSdf.format( new Date() ) );
-            editor.putString( "token", token );
             editor.apply();
 
-            DatabaseReference dbDeviceEntry = theDatabase.child( "clients" ).child( deviceKey );
+            DatabaseReference dbDeviceEntry = theDatabase.child( theDevice.getDeviceKey() );
             // The reason we don't just use setValue is to preserve the [messages] node
             dbDeviceEntry.child( "brand" ).setValue( theDevice.getBrand() );
             dbDeviceEntry.child( "model" ).setValue( theDevice.getModel() );
             dbDeviceEntry.child( "name" ).setValue( theDevice.getName() );
-            dbDeviceEntry.child( "number" ).setValue( theDevice.getNumber() );
+
+            String number = theDevice.getNumber( this );
+            if ( number.equals( R.string.noPermission ) )
+                Status( "Registering without a phone number" );
+            dbDeviceEntry.child( "number" ).setValue( number );
+
             dbDeviceEntry.child( "regDate" ).setValue( theDevice.getRegDate() );
             dbDeviceEntry.child( "regToken" ).setValue( theDevice.getRegToken() );
             dbDeviceEntry.child( "serial" ).setValue( theDevice.getSerial() );
 
+            Status( "Token: " + pref.getString( "regToken", null ) );
+            Status( "regDate updated: " + theDevice.getRegDate() );
+            Button registerButton = findViewById( R.id.btnRegister );
+            registerButton.setText( "Device Registered" );
         } catch (Exception e) {
             Log.e( "DBG", e.getMessage() );
         }
+
     }
 
-    @Override
-    public void onRequestPermissionsResult( int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults ) {
-        super.onRequestPermissionsResult( requestCode, permissions, grantResults );
-        if ( requestCode == REQUEST_CODE ) {
-            for (int grant : grantResults) {
-                if ( grant != PackageManager.PERMISSION_GRANTED ) {
-                    RegisterDevice();
-                    return;
-                }
-            }
-        }
-    }
-
-    // Fetches registration token from shared preferences
-    // and displays on the screen
-    private void displayFirebaseToken() {
+    public void checkRegistration( final boolean forceUpdate ) {
+        final String token = pref.getString( "regToken", null );
+        final String deviceKey = pref.getString( "deviceKey", "" );
 
         if ( !TextUtils.isEmpty( token ) ) {
-            String tokenText;
-            tokenText = "Registration token: " + token;
-            txtToken.setText( tokenText );
-        } else {
-            txtToken.setText( "Registration token not yet received" );
-        }
-    }
-
-    boolean inDatabase = false;
-
-    public boolean checkRegistrationStatus() {
-        final String token = pref.getString( "token", null );
-        final Button registerButton = findViewById( R.id.btnRegister );
-
-        // Log.e( TAG, "Firebase registration token: " + token );
-        if ( !TextUtils.isEmpty( token ) ) {
-            txtRegStatus.setText( "Checking registration status..." );
-            displayFirebaseToken();
-            final DatabaseReference dbDeviceEntry = theDatabase.child( "clients" ).child( deviceKey );
+            Status( "Checking registration status..." );
+            final DatabaseReference dbDeviceEntry = theDatabase.child( deviceKey );
             dbDeviceEntry.addListenerForSingleValueEvent( new ValueEventListener() {
                 @Override
                 public void onDataChange( @NonNull DataSnapshot data ) {
-                    if ( !data.exists() ) {
-                        txtRegStatus.setText( R.string.notRegistered );
-                        inDatabase = false;
+                    if ( !data.exists() || !token.equals( data.child( "regToken" ).getValue() ) ) {
+                        Status( "Not registered or token mismatch" );
+                        registerDevice();
                     } else {
-                        if ( token.equals( data.child( "regToken" ).getValue() ) ) {
-                            registerButton.setText( R.string.alreadyregistered );
-                            txtRegStatus.setText( "Device registered on " + data.child( "regDate" ).getValue() );
-                            inDatabase = true;
-                        } else {
-                            txtRegStatus.setText( "Token mismatch. Updating registration..." );
-                            inDatabase = false;
-                            DatabaseReference dbRegToken = dbDeviceEntry.child( "regToken" );
-                            dbRegToken.addListenerForSingleValueEvent( new ValueEventListener() {
-                                @Override
-                                public void onDataChange( @NonNull DataSnapshot data ) {
-                                    txtRegStatus.setText( "Device registered on " + data.child( "regDate" ).getValue() );
-                                    inDatabase = true;
-                                }
-
-                                @Override
-                                public void onCancelled( @NonNull DatabaseError databaseError ) {
-                                }
-                            } );
+                        Status( "Registered on " + data.child( "regDate" ).getValue() );
+                        if ( forceUpdate ) {
+                            Status( "Forced registration update:" );
+                            registerDevice();
                         }
                     }
                 }
@@ -208,10 +191,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             } );
         } else {
-            txtRegStatus.setText( "No registration token yet. Waiting for token..." );
+            Status( "No registration token yet. Waiting for token..." );
         }
-        // if ( !inDatabase ) RegisterDevice();
-        return inDatabase;
     }
 
     // Handling received intents
@@ -219,57 +200,135 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive( Context context, Intent intent ) {
 
-            Log.e( TAG, "INTENT Received: " + intent );
-
-            // checking for type intent filter
             if ( intent.getAction().equals( Config.REGISTRATION_COMPLETE ) ) {
-                // // now subscribe to `global` topic to receive app wide notifications
-                // FirebaseMessaging.getInstance().subscribeToTopic( Config.TOPIC_GLOBAL );
-                Toast.makeText( getApplicationContext(), "Received Firebase Registration Token!", Toast.LENGTH_LONG ).show();
-                Log.e( TAG, "Firebase regToken created: " + intent.getStringExtra("regToken") );
+                Toast toast = Toast.makeText( getApplicationContext(), "Received Firebase registration token", Toast.LENGTH_LONG );
+                toast.setGravity( Gravity.CENTER, 0, 0 );
+                toast.show();
+                Status( "Firebase regToken created: " + intent.getStringExtra( "regToken" ) );
 
                 Button registerButton = findViewById( R.id.btnRegister );
                 registerButton.setEnabled( true );
-
-                // checkRegistrationStatus();
+                checkRegistration( false );
 
             } else if ( intent.getAction().equals( Config.PUSH_NOTIFICATION ) ) {
-                // new push notification is received
-                String message = intent.getStringExtra( "message" );
-                Toast.makeText( getApplicationContext(), "Received Message: " + message, Toast.LENGTH_LONG ).show();
-                Log.e( TAG, "Message received: " + message );
-                //doVibrate(message);
-
+                Toast toast = Toast.makeText( getApplicationContext(), "Received Command: " + intent.getStringExtra( "command" ), Toast.LENGTH_SHORT );
+                toast.setGravity( Gravity.CENTER, 0, 0 );
+                toast.show();
             }
         }
-
     };
+
+    public void askForPermission( String[] permission, int permissionCode ) {
+        ActivityCompat.requestPermissions( this, permission, permissionCode );
+    }
+
+    public static String getApplicationName( Context context ) {
+        ApplicationInfo applicationInfo = context.getApplicationInfo();
+        int stringId = applicationInfo.labelRes;
+        return stringId == 0 ? applicationInfo.nonLocalizedLabel.toString() : context.getString( stringId );
+    }
+
+    public void permissionDialog( final String[] permission, final int permissionCode, String message, Boolean hasPositiveButton, String positiveText, Boolean hasNegativeButton, String negativeText ) {
+        DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick( DialogInterface dialog, int which ) {
+                switch (which) {
+                    case DialogInterface.BUTTON_POSITIVE:
+                        askForPermission( permission, permissionCode );
+                        break;
+                    case DialogInterface.BUTTON_NEGATIVE:
+                        dialog.dismiss();
+                        break;
+                }
+            }
+        };
+        AlertDialog.Builder alert = new AlertDialog.Builder( this );
+        alert.setMessage( message );
+        if ( hasPositiveButton ) alert.setPositiveButton( positiveText, dialogClickListener );
+        if ( hasNegativeButton ) alert.setNegativeButton( negativeText, dialogClickListener );
+        alert.show();
+    }
+
+    public void checkPermissions() {
+        if ( ContextCompat.checkSelfPermission( this, READ_PHONE_STATE )
+                + ContextCompat.checkSelfPermission( this, ACCESS_COARSE_LOCATION )
+                != PackageManager.PERMISSION_GRANTED ) {
+            Message( "One or more permissions are not granted.\nApplication may not work properly." );
+            // registerButton.setText( "Grant App Permissions" );
+            // registerButton.setEnabled( true );
+            // registerButton.setOnClickListener( new View.OnClickListener() {
+            //     @Override
+            //     public void onClick( View view ) {
+            //         Status("clicked");
+            //         checkPermissionRationale();
+            //     }
+            // } );
+            checkPermissionRationale();
+        } else {
+            Message( "Ready." );
+            registerButton.setText( "Update Device Registration" );
+            registerButton.setEnabled( false );
+            registerButton.setOnClickListener( new View.OnClickListener() {
+                @Override
+                public void onClick( View view ) {
+                    checkRegistration( true );
+                }
+            } );
+        }
+    }
+
+    public void checkPermissionRationale() {
+        if ( ActivityCompat.shouldShowRequestPermissionRationale( this, ACCESS_COARSE_LOCATION ) ) {
+            Message( "If you checked \"Do not ask again\" for the permissions, you can either reinstall the application, or enable the permissions from your phone settings:\n\nSettings > Apps > "
+                    + getApplicationName( this ) );
+            Status("");
+        } else {
+            permissionDialog( new String[]{ACCESS_COARSE_LOCATION}, permissionCodeLocation, "Please grant permissions for the app to work properly. The \"location\" permission is only used for getting signal quality information, not for tracking your location.", true, "Grant Permissions", true, "Cancel" );
+        }
+        // if ( ActivityCompat.shouldShowRequestPermissionRationale( this, READ_PHONE_STATE ) ) {
+        //     Message( "If you checked \"Do not ask again\" for the permissions, you can either reinstall the application, or enable the permissions from your phone settings:\n\nSettings > Apps > "
+        //             + getApplicationName( this ) );
+        // } else {
+        //     permissionDialog( new String[]{READ_PHONE_STATE}, permissionCodePhone, "Please grant permissions for the app to work properly.", true, "Grant Permissions", true, "Cancel" );
+        // }
+    }
 
     @Override
     protected void onResume() {
-        LocalBroadcastManager.getInstance( this )
-                .registerReceiver( serviceMessageReceiver,
-                        new IntentFilter( Config.REGISTRATION_COMPLETE ) );
-        LocalBroadcastManager.getInstance( this )
-                .registerReceiver( serviceMessageReceiver,
-                        new IntentFilter( Config.PUSH_NOTIFICATION ) );
         super.onResume();
-        //
-        // // register new push message receiver
-        // // by doing this, the activity will be notified each time a new message arrives
-        // LocalBroadcastManager.getInstance( this ).registerReceiver( mRegistrationBroadcastReceiver,
-        //         new IntentFilter( Config.PUSH_NOTIFICATION ) );
-        //
-        // // clear the notification area when the app is opened
-        // NotificationUtils.clearNotifications( getApplicationContext() );
+        Message( "Ready." );
+        checkRegistration( false );
+        // checkPermissions();
+        LocalBroadcastManager.getInstance( this ).registerReceiver( serviceMessageReceiver, new IntentFilter( Config.PUSH_NOTIFICATION ) );
+        LocalBroadcastManager.getInstance( this ).registerReceiver( serviceMessageReceiver, new IntentFilter( Config.REGISTRATION_COMPLETE ) );
+    }
+
+    @Override
+    public void onRequestPermissionsResult( int requestCode, @NonNull String permissions[], @NonNull int[] grantResults ) {
+        Status( "onRequestPermissionResult() firing" );
+        switch (requestCode) {
+            case Config.PERMISSIONS_CODE:
+                if ( grantResults.length > 0 ) {
+                    boolean permLocation = grantResults[1] == PackageManager.PERMISSION_GRANTED;
+                    boolean permPhone = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+
+                    if ( permLocation && permPhone ) {
+                        Status( "Permissions obtained" );
+                        if ( !pref.contains( "regToken" ) ) {
+                            Status( "Still waiting for Firebase token" );
+                            registerButton.setEnabled( false );
+                        } else {
+                            checkRegistration( true );
+                        }
+                    }
+                }
+                break;
+        }
     }
 
     @Override
     protected void onPause() {
-        // LocalBroadcastManager.getInstance( this ).unregisterReceiver( mRegistrationBroadcastReceiver );
-        // Unregister since the activity is not visible
-        LocalBroadcastManager.getInstance( this )
-                .unregisterReceiver( serviceMessageReceiver );
+        LocalBroadcastManager.getInstance( this ).unregisterReceiver( serviceMessageReceiver );
         super.onPause();
     }
 }

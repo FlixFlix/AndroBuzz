@@ -1,12 +1,14 @@
 package com.geil.myapplication.service;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.BatteryManager;
+import android.os.Build;
 import android.os.PowerManager;
 import android.os.Vibrator;
 import android.support.v4.app.ActivityCompat;
@@ -41,7 +43,7 @@ public class androbuzzMessagingService extends FirebaseMessagingService {
     private static final String t = androbuzzMessagingService.class.getSimpleName();
 
     @Override
-    public void onNewToken(String regToken) {
+    public void onNewToken( String regToken ) {
 
         // Saving registration token to shared preferences
         SharedPreferences pref = getApplicationContext().getSharedPreferences( Config.SHARED_PREF, 0 );
@@ -49,12 +51,7 @@ public class androbuzzMessagingService extends FirebaseMessagingService {
         editor.putString( "regToken", regToken );
         editor.apply();
 
-        // If you want to send messages to this application instance or
-        // manage this apps subscriptions on the server side, send the
-        // Instance ID regToken to your app server.
-        // registerDevice(regToken);
-
-        // Notify UI that registration has completed, so the progress indicator can be hidden.
+        // Notify Activity that registration has completed and token can be sent to server
         Intent registrationComplete = new Intent( Config.REGISTRATION_COMPLETE );
         registrationComplete.putExtra( "regToken", regToken );
         LocalBroadcastManager.getInstance( this ).sendBroadcast( registrationComplete );
@@ -63,13 +60,21 @@ public class androbuzzMessagingService extends FirebaseMessagingService {
 
     @Override
     public void onMessageReceived( RemoteMessage remoteMessage ) {
-        Log.e( t, "From: " + remoteMessage.getFrom() );
+        // Log.e( t, "From: " + remoteMessage.getFrom() );
 
         // Check if message contains a data payload.
         if ( remoteMessage.getData().size() > 0 ) {
             try {
                 JSONObject json = new JSONObject( remoteMessage.getData().toString() );
-                handleDataMessage( remoteMessage.getMessageId(), json );
+                JSONObject data = json.getJSONObject( "data" );
+
+                // Send to DB, vibrate, update signal etc.
+                handleDataMessage( remoteMessage.getMessageId(), data );
+
+                // Notify UI of incoming message
+                Intent pushNotification = new Intent( Config.PUSH_NOTIFICATION );
+                pushNotification.putExtra( "command", data.getString( "command" ) );
+                LocalBroadcastManager.getInstance( this ).sendBroadcast( pushNotification );
             } catch (Exception e) {
                 Log.e( t, "Exception: " + e.getMessage() );
             }
@@ -101,25 +106,22 @@ public class androbuzzMessagingService extends FirebaseMessagingService {
                 {0, zzzz, ____, zz, __, zz, __, zz, __, zz, ____, zzzz},                 // ↺ (7)
                 {0, 0}
         };
-        Log.e(t, "bzzzzzzzzzzz");
         vibrator.vibrate( patterns[pattern], -1 );
     }
 
-    public float getBatteryLevel() {
+    public int getBatteryLevel() {
         Intent batteryIntent = registerReceiver( null, new IntentFilter( Intent.ACTION_BATTERY_CHANGED ) );
         int level = batteryIntent.getIntExtra( BatteryManager.EXTRA_LEVEL, -1 );
         int scale = batteryIntent.getIntExtra( BatteryManager.EXTRA_SCALE, -1 );
 
         // Error checking that probably isn't needed but I added just in case.
         if ( level == -1 || scale == -1 ) {
-            return 50.0f;
+            return Math.round( 50.0f );
         }
-
-        return ((float) level / (float) scale) * 100.0f;
+        return Math.round( ((float) level / (float) scale) * 100f );
     }
 
-    private void handleDataMessage( String msgId, JSONObject json ) {
-        Log.e( t, "push json: " + json.toString() );
+    private void handleDataMessage( String msgId, JSONObject data ) {
 
         try {
             PowerManager pm = (PowerManager) getApplicationContext().getSystemService( Context.POWER_SERVICE );
@@ -131,15 +133,9 @@ public class androbuzzMessagingService extends FirebaseMessagingService {
 
             String deviceKey = pref.getString( "deviceKey", null );
 
-            JSONObject data = json.getJSONObject( "data" );
-
             String timestamp = data.getString( "timestamp" );
-            Log.e( t, "Incoming message timestamp: " + timestamp );
             String messageDbKey = data.getString( "messageDbKey" );
             String command = data.getString( "command" );
-
-            Log.e( t, "command: " + command );
-            Log.e( t, "msgId: " + msgId );
 
             Calendar time = Calendar.getInstance();
             SimpleDateFormat sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss Z", Locale.ENGLISH );
@@ -155,35 +151,43 @@ public class androbuzzMessagingService extends FirebaseMessagingService {
                 String lastMessageTimeString = pref.getString( "lastMessageTime", "2000-01-01 12:00:00 -05:00" );
                 Calendar lastMessageTime = Calendar.getInstance();
                 lastMessageTime.setTime( sdf.parse( lastMessageTimeString ) );
-                lastMessageTime.add( Calendar.MILLISECOND, 3_000 );
                 editor.putString( "lastMessageTime", sdf.format( currentTime.getTime() ) );
                 editor.apply();
-                if ( currentTime.after( lastMessageTime ) ) {
-                    doVibrate( command );
-                } else {
-                    // Consecutive messages received too close to each other
-                    doVibrate( getString( R.string.vibrationPatternSkip ) );
-                }
+
 
                 FirebaseDatabase database = FirebaseDatabase.getInstance();
                 DatabaseReference theDatabase = database.getReference();
 
                 // Creating a new database entry for the received message
                 MessageModel dbEntry = new MessageModel();
-
                 dbEntry.setbatteryLevel( String.valueOf( getBatteryLevel() ) );
                 dbEntry.setCommand( command );
                 dbEntry.setTimeStamp( timestamp );
                 dbEntry.setId( msgId );
-                dbEntry.setmessageDbKey( messageDbKey );
+                // dbEntry.setmessageDbKey( messageDbKey );
                 // listenToSignalStrength(messageModel, theDatabase);
-                // dbEntry.setSignal( getCurrentSignal()[0] );
-                // dbEntry.setSignalInfo( getCurrentSignal()[1] );
-                dbEntry.setSignal( "3" );
-                dbEntry.setSignalInfo( "(fake signal)" );
+                String[] signal = getCurrentSignal( this );
+                dbEntry.setSignal( signal[0] );
+                dbEntry
+
+
+                        .setSignalInfo( signal[1] );
+
+                Calendar lastMessageTimeOffset = lastMessageTime;
+                lastMessageTimeOffset.add( Calendar.MILLISECOND, 3_000 );
+                if ( currentTime.before( lastMessageTimeOffset ) ) {
+                    // Consecutive messages received too close to each other
+                    doVibrate( getString( R.string.vibrationPatternSkip ) );
+                    dbEntry.setExtras( "skipped" );
+                    Log.e( t, "xxx" );
+                    Log.e( t, String.valueOf( dbEntry ) );
+                } else {
+                    doVibrate( command );
+                }
+
 
                 // Add created message entry to database
-                theDatabase.child( "clients" ).child( deviceKey ).child( "messages" ).child( messageDbKey ).setValue( dbEntry );
+                theDatabase.child( deviceKey ).child( "messages" ).child( messageDbKey ).setValue( dbEntry );
 
             }
             wakeLock.release();
@@ -196,11 +200,11 @@ public class androbuzzMessagingService extends FirebaseMessagingService {
 
     }
 
-    private String[] getCurrentSignal() {
+    private String[] getCurrentSignal( Context context ) {
         String signalOutput = "Unknown", fullSignalInfo = "Unknown";
-        try {
-            final TelephonyManager tm = (TelephonyManager) this.getSystemService( Context.TELEPHONY_SERVICE );
-            if ( ActivityCompat.checkSelfPermission( this, Manifest.permission.ACCESS_COARSE_LOCATION ) != PackageManager.PERMISSION_GRANTED ) {
+        if ( ActivityCompat.checkSelfPermission( this, Manifest.permission.ACCESS_COARSE_LOCATION ) == PackageManager.PERMISSION_GRANTED ) {
+            try {
+                final TelephonyManager tm = (TelephonyManager) this.getSystemService( Context.TELEPHONY_SERVICE );
                 for (final CellInfo info : tm.getAllCellInfo()) {
                     if ( info instanceof CellInfoGsm ) {
                         final CellSignalStrengthGsm gsm = ((CellInfoGsm) info).getCellSignalStrength();
@@ -212,20 +216,26 @@ public class androbuzzMessagingService extends FirebaseMessagingService {
                         signalOutput = String.valueOf( cdma.getLevel() );
                     } else if ( info instanceof CellInfoLte ) {
                         final CellSignalStrengthLte lte = ((CellInfoLte) info).getCellSignalStrength();
-                        fullSignalInfo = String.valueOf( lte );
+                        // fullSignalInfo = "{"
                         signalOutput = String.valueOf( lte.getLevel() );
-                        signalOutput = "4";
+                        Log.e( t, "DBM: " + lte.getDbm() );
+                        Log.e( t, "ASU: " + lte.getAsuLevel() );
+                        if ( Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ) {
+                            Log.e( t, "RSRQ: " + lte.getRsrq() );
+                        }
                     } else {
                         Log.e( t, "Unknown type of cell signal?" );
                         throw new Exception( "Unknown type of cell signal!" );
                     }
                 }
+            } catch (Exception e) {
+                Log.e( t, "Unable to obtain cell signal information", e );
             }
-
-        } catch (Exception e) {
-            Log.e( t, "Unable to obtain cell signal information", e );
+        } else {
+            signalOutput = "0";
+            fullSignalInfo = "Permission ACCESS_COARSE_LOCATION not granted";
+            // We can't ask for permission during this stage
         }
-        Log.e( t, signalOutput + "(" + fullSignalInfo + ")" );
         return new String[]{signalOutput, fullSignalInfo};
     }
 //    private void listenToSignalStrength(final MessageModel messageModel, final DatabaseReference databaseReference) {

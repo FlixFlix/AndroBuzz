@@ -1,7 +1,14 @@
 apply plugin: 'com.android.application'
-
+allprojects {
+    repositories {
+        jcenter()
+        maven {
+            url "https://maven.google.com"
+        }
+    }
+}
 android {
-    compileSdkVersion 26
+    compileSdkVersion 27
     defaultConfig {
         applicationId "com.androbuzz.android"
         minSdkVersion 24
@@ -41,7 +48,7 @@ android {
 
 ext.SUPPORT_VERSION = "27.1.1"
 ext.FIREBASE_VERSION = "16.0.1"
-ext.FIREBASE__MESSAGING_VERSION = "17.1.0"
+ext.FIREBASE__MESSAGING_VERSION = "17.3.0"
 ext.JACKSON_VERSION = "2.9.6"
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
@@ -52,6 +59,7 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-core:$JACKSON_VERSION"
     implementation "com.fasterxml.jackson.core:jackson-annotations:$JACKSON_VERSION"
     implementation "com.fasterxml.jackson.core:jackson-databind:$JACKSON_VERSION"
+    implementation "com.android.support:design:$SUPPORT_VERSION"
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">CDL</string>
+    <string name="application_name">CDL</string>
     <string name="title_main_activity">Registrations</string>
     <string name="regsuccess">Registration Successful</string>
     <string name="regfail">Registration failed. Tap to retry.</string>
@@ -8,4 +8,5 @@
     <string name="vibrationPatternSkip">5</string>
     <string name="notRegistered">Device not registered or token mismatch.\Attempting registration...</string>
     <string name="tokenNotGood">Token mismatch. Updating registration...</string>
+    <string name="noPermission">No number permission</string>
 </resources>
