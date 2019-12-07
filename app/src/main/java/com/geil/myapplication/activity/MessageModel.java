@@ -3,35 +3,33 @@ package com.geil.myapplication.activity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 /**
  * Created by CaptainStosha on 8/19/2017.
  */
-@JsonIgnoreProperties( ignoreUnknown = true )
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class MessageModel {
 
-    public MessageModel() {
-    }
-
-    @JsonProperty( value = "title" )
+    @JsonProperty(value = "title")
     private String title;
-
-    @JsonProperty( value = "command" )
+    @JsonProperty(value = "command")
     private String command;
-
-    @JsonProperty( value = "id" )
+    @JsonProperty(value = "id")
     private String id;
-
-    @JsonProperty( value = "batteryLevel" )
+    @JsonProperty(value = "batteryLevel")
     private String batteryLevel;
-
-    @JsonProperty( value = "timeStamp" )
+    @JsonProperty(value = "timeStamp")
     private String timeStamp;
-
-    @JsonProperty( value = "extras" )
+    @JsonProperty(value = "extras")
     private String extras;
-    public void setExtras( String extras ) {
-        this.extras = extras;
-    }
+    @JsonProperty(value = "signal")
+    private String signal;
+    @JsonProperty("timeDelivered")
+    private String timeDelivered;
+    @JsonProperty(value = "signalInfo")
+    private String signalInfo;
 
 
     // @JsonProperty( value = "messageDbKey" )
@@ -44,25 +42,26 @@ public class MessageModel {
     //     this.messageDbKey = messageDbKey;
     // }
 
-    @JsonProperty( value = "signal" )
-    private String signal;
+    public MessageModel() {
+    }
+
+    public void setExtras(String extras) {
+        this.extras = extras;
+    }
 
     public String getSignal() {
         return signal;
     }
 
-    public void setSignal( String signal ) {
+    public void setSignal(String signal) {
         this.signal = signal;
     }
-
-    @JsonProperty( value = "signalInfo" )
-    private String signalInfo;
 
     public String getSignalInfo() {
         return signalInfo;
     }
 
-    public void setSignalInfo( String signalInfo ) {
+    public void setSignalInfo(String signalInfo) {
         this.signalInfo = signalInfo;
     }
 
@@ -70,7 +69,7 @@ public class MessageModel {
         return title;
     }
 
-    public void setTitle( String title ) {
+    public void setTitle(String title) {
         this.title = title;
     }
 
@@ -78,7 +77,7 @@ public class MessageModel {
         return command;
     }
 
-    public void setCommand( String command ) {
+    public void setCommand(String command) {
         this.command = command;
     }
 
@@ -86,7 +85,7 @@ public class MessageModel {
         return id;
     }
 
-    public void setId( String id ) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -94,7 +93,7 @@ public class MessageModel {
         return batteryLevel;
     }
 
-    public void setbatteryLevel( String batteryLevel ) {
+    public void setBatteryLevel(String batteryLevel) {
         this.batteryLevel = batteryLevel;
     }
 
@@ -102,9 +101,15 @@ public class MessageModel {
         return timeStamp;
     }
 
-    public void setTimeStamp( String timeStamp ) {
+    public void setTimeStamp(String timeStamp) {
         this.timeStamp = timeStamp;
     }
 
+    public void setTimeDelivered(String timeDelivered){
+        this.timeDelivered = timeDelivered;
+    }
 
+    public String getTimeDelivered() {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ").format(new Date());
+    }
 }

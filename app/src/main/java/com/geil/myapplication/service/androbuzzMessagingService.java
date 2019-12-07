@@ -1,31 +1,35 @@
 package com.geil.myapplication.service;
 
-import android.Manifest;
-import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothHeadset;
+import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
+import android.media.AudioManager;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.PowerManager;
 import android.os.Vibrator;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.telephony.CellInfo;
 import android.telephony.CellInfoCdma;
 import android.telephony.CellInfoGsm;
 import android.telephony.CellInfoLte;
+import android.telephony.CellInfoWcdma;
 import android.telephony.CellSignalStrengthCdma;
 import android.telephony.CellSignalStrengthGsm;
 import android.telephony.CellSignalStrengthLte;
+import android.telephony.CellSignalStrengthWcdma;
 import android.telephony.TelephonyManager;
-import android.util.Log;
 
 import com.androbuzz.android.R;
 import com.geil.myapplication.activity.MessageModel;
 import com.geil.myapplication.app.Config;
+import com.geil.myapplication.app.SharedPrefs;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.messaging.FirebaseMessagingService;
@@ -36,53 +40,65 @@ import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
+import timber.log.Timber;
+
+import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
+import static com.geil.myapplication.app.Config.Action.MESSAGE;
+import static com.geil.myapplication.app.Config.Action.PUSH_NOTIFICATION;
+import static com.geil.myapplication.app.Config.Action.REGISTRATION_COMPLETE;
+import static com.geil.myapplication.app.Config.Database.MESSAGES;
+import static com.geil.myapplication.app.Config.Extra.COMMAND;
+import static com.geil.myapplication.app.Config.Extra.REG_TOKEN;
+import static com.geil.myapplication.app.Config.JSON.MESSAGE_DB_KEY;
+import static com.geil.myapplication.app.Config.JSON.TIMESTAMP;
+import static com.geil.myapplication.app.Config.MESSAGE_TIMEOUT;
 
 public class androbuzzMessagingService extends FirebaseMessagingService {
 
-    private static final String t = androbuzzMessagingService.class.getSimpleName();
-
     @Override
-    public void onNewToken( String regToken ) {
+    public void onNewToken(String regToken) {
 
         // Saving registration token to shared preferences
-        SharedPreferences pref = getApplicationContext().getSharedPreferences( Config.SHARED_PREF, 0 );
-        SharedPreferences.Editor editor = pref.edit();
-        editor.putString( "regToken", regToken );
-        editor.apply();
+        SharedPrefs.getInstance().saveToken(regToken);
 
         // Notify Activity that registration has completed and token can be sent to server
-        Intent registrationComplete = new Intent( Config.REGISTRATION_COMPLETE );
-        registrationComplete.putExtra( "regToken", regToken );
-        LocalBroadcastManager.getInstance( this ).sendBroadcast( registrationComplete );
+        Intent registrationComplete = new Intent(REGISTRATION_COMPLETE);
+        registrationComplete.putExtra(REG_TOKEN, regToken);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(registrationComplete);
 
     }
 
     @Override
-    public void onMessageReceived( RemoteMessage remoteMessage ) {
+    public void onMessageReceived(RemoteMessage remoteMessage) {
         // Log.e( t, "From: " + remoteMessage.getFrom() );
 
         // Check if message contains a data payload.
-        if ( remoteMessage.getData().size() > 0 ) {
+        if (remoteMessage.getData().size() > 0) {
             try {
-                JSONObject json = new JSONObject( remoteMessage.getData().toString() );
-                JSONObject data = json.getJSONObject( "data" );
+                JSONObject json = new JSONObject(remoteMessage.getData().toString());
+                JSONObject data = json.getJSONObject("data");
 
                 // Send to DB, vibrate, update signal etc.
-                handleDataMessage( remoteMessage.getMessageId(), data );
+                handleDataMessage(remoteMessage.getMessageId(), data);
 
                 // Notify UI of incoming message
-                Intent pushNotification = new Intent( Config.PUSH_NOTIFICATION );
-                pushNotification.putExtra( "command", data.getString( "command" ) );
-                LocalBroadcastManager.getInstance( this ).sendBroadcast( pushNotification );
+                Intent pushNotification = new Intent(PUSH_NOTIFICATION);
+                pushNotification.putExtra(COMMAND, data.getString(COMMAND));
+                LocalBroadcastManager.getInstance(this).sendBroadcast(pushNotification);
             } catch (Exception e) {
-                Log.e( t, "Exception: " + e.getMessage() );
+                Timber.e(e);
             }
         }
     }
 
-    private void doVibrate( String command ) {
-        final Vibrator vibrator = (Vibrator) getSystemService( Context.VIBRATOR_SERVICE );
+    private void doVibrate(String command) {
+        final Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         int pattern = 0;
         final int zzzz = 400,
                 ____ = 800,
@@ -90,9 +106,9 @@ public class androbuzzMessagingService extends FirebaseMessagingService {
                 __ = 200,
                 zzzzzzzzzzz = 4000;
         try {
-            pattern = Integer.parseInt( command );
+            pattern = Integer.parseInt(command);
         } catch (NumberFormatException nfe) {
-            System.out.println( "Could not parse " + nfe );
+            System.out.println("Could not parse " + nfe);
         }
 
         long[][] patterns = {
@@ -106,190 +122,229 @@ public class androbuzzMessagingService extends FirebaseMessagingService {
                 {0, zzzz, ____, zz, __, zz, __, zz, __, zz, ____, zzzz},                 // ↺ (7)
                 {0, 0}
         };
-        vibrator.vibrate( patterns[pattern], -1 );
+        vibrator.vibrate(patterns[pattern], -1);
     }
 
     public int getBatteryLevel() {
-        Intent batteryIntent = registerReceiver( null, new IntentFilter( Intent.ACTION_BATTERY_CHANGED ) );
-        int level = batteryIntent.getIntExtra( BatteryManager.EXTRA_LEVEL, -1 );
-        int scale = batteryIntent.getIntExtra( BatteryManager.EXTRA_SCALE, -1 );
+        Intent batteryIntent = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        int level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+        int scale = batteryIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
 
         // Error checking that probably isn't needed but I added just in case.
-        if ( level == -1 || scale == -1 ) {
-            return Math.round( 50.0f );
+        if (level == -1 || scale == -1) {
+            return Math.round(50.0f);
         }
-        return Math.round( ((float) level / (float) scale) * 100f );
+        return Math.round(((float) level / (float) scale) * 100f);
     }
 
-    private void handleDataMessage( String msgId, JSONObject data ) {
+    private void handleDataMessage(String msgId, JSONObject data) {
 
         try {
-            PowerManager pm = (PowerManager) getApplicationContext().getSystemService( Context.POWER_SERVICE );
-            PowerManager.WakeLock wakeLock = pm.newWakeLock( (PowerManager.PARTIAL_WAKE_LOCK), "t" );
-            wakeLock.acquire( 300_000 );
+            PowerManager pm = (PowerManager) getApplicationContext().getSystemService(Context.POWER_SERVICE);
+            PowerManager.WakeLock wakeLock = pm.newWakeLock((PowerManager.PARTIAL_WAKE_LOCK), "t:wakeLog");
+            wakeLock.acquire(300_000);
 
-            SharedPreferences pref = getApplicationContext().getSharedPreferences( Config.SHARED_PREF, 0 );
-            SharedPreferences.Editor editor = pref.edit();
+            String deviceKey = SharedPrefs.getInstance().getDeviceKey();
 
-            String deviceKey = pref.getString( "deviceKey", null );
-
-            String timestamp = data.getString( "timestamp" );
-            String messageDbKey = data.getString( "messageDbKey" );
-            String command = data.getString( "command" );
+            String timestamp = data.getString(TIMESTAMP);
+            String messageDbKey = data.getString(MESSAGE_DB_KEY);
+            String command = data.getString(Config.JSON.COMMAND);
 
             Calendar time = Calendar.getInstance();
-            SimpleDateFormat sdf = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss Z", Locale.ENGLISH );
-            time.setTime( sdf.parse( timestamp ) );
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z", Locale.ENGLISH);
+            time.setTime(sdf.parse(timestamp));
 
             Calendar currentTime = Calendar.getInstance();
-            time.add( Calendar.MILLISECOND, 15_000 );
+            time.add(Calendar.MILLISECOND, MESSAGE_TIMEOUT);
 
-            if ( time.before( currentTime ) ) {
-                Log.e( t, "Expired message. Disregarded." );
+            if (time.before(currentTime)) {
+                Timber.e("Expired message. Disregarded.");
             } else {
-
-                String lastMessageTimeString = pref.getString( "lastMessageTime", "2000-01-01 12:00:00 -05:00" );
+                String lastMessageTimeString = SharedPrefs.getInstance().getLastMessageTime();
+                String lastMessageCommand = SharedPrefs.getInstance().getLastMessageCommand();
                 Calendar lastMessageTime = Calendar.getInstance();
-                lastMessageTime.setTime( sdf.parse( lastMessageTimeString ) );
-                editor.putString( "lastMessageTime", sdf.format( currentTime.getTime() ) );
-                editor.apply();
-
+                lastMessageTime.setTime(sdf.parse(lastMessageTimeString));
+                SharedPrefs.getInstance().saveLastMessageTime(sdf.format(currentTime.getTime()));
+                SharedPrefs.getInstance().saveLastMessageCommand(command);
 
                 FirebaseDatabase database = FirebaseDatabase.getInstance();
                 DatabaseReference theDatabase = database.getReference();
 
                 // Creating a new database entry for the received message
                 MessageModel dbEntry = new MessageModel();
-                dbEntry.setbatteryLevel( String.valueOf( getBatteryLevel() ) );
-                dbEntry.setCommand( command );
-                dbEntry.setTimeStamp( timestamp );
-                dbEntry.setId( msgId );
-                // dbEntry.setmessageDbKey( messageDbKey );
-                // listenToSignalStrength(messageModel, theDatabase);
-                String[] signal = getCurrentSignal( this );
-                dbEntry.setSignal( signal[0] );
-                dbEntry
+                dbEntry.setBatteryLevel(String.valueOf(getBatteryLevel()));
+                dbEntry.setCommand(command);
+                dbEntry.setTimeStamp(timestamp);
+                dbEntry.setId(msgId);
+                dbEntry.setTimeDelivered(dbEntry.getTimeDelivered());
+                Map signal = getCurrentSignal(this);
+                JSONObject signalJson = new JSONObject(signal);
+                String signalString = String.valueOf(signalJson);
+                dbEntry.setSignal(signalString);
 
-
-                        .setSignalInfo( signal[1] );
-
-                Calendar lastMessageTimeOffset = lastMessageTime;
-                lastMessageTimeOffset.add( Calendar.MILLISECOND, 3_000 );
-                if ( currentTime.before( lastMessageTimeOffset ) ) {
-                    // Consecutive messages received too close to each other
-                    doVibrate( getString( R.string.vibrationPatternSkip ) );
-                    dbEntry.setExtras( "skipped" );
-                    Log.e( t, "xxx" );
-                    Log.e( t, String.valueOf( dbEntry ) );
+                Calendar lastMessageTimeWithOffset = lastMessageTime;
+                lastMessageTimeWithOffset.add(Calendar.MILLISECOND, 3000);
+                if (currentTime.before(lastMessageTimeWithOffset) && command.matches("[1234]") && !lastMessageCommand.equals("0")) {
+                    doVibrate(getString(R.string.vibrationPatternSkip));
+                    dbEntry.setExtras("skipped");
+                } else if (command.equals("9")) {
+                    attemptBluetoothConnection();
                 } else {
-                    doVibrate( command );
+                    doVibrate(command);
                 }
-
-
-                // Add created message entry to database
-                theDatabase.child( deviceKey ).child( "messages" ).child( messageDbKey ).setValue( dbEntry );
-
+                theDatabase.child(deviceKey).child(MESSAGES).child(messageDbKey).setValue(dbEntry);
             }
             wakeLock.release();
             System.gc();
         } catch (JSONException e) {
-            Log.e( t, "Json Exception: " + e.getMessage() );
+            Timber.e("JSON exception: %s", e.getMessage());
         } catch (Exception e) {
-            Log.e( t, "Exception: " + e.getMessage() );
+            Timber.e("Exception: %s", e.getMessage());
         }
-
     }
 
-    private String[] getCurrentSignal( Context context ) {
-        String signalOutput = "Unknown", fullSignalInfo = "Unknown";
-        if ( ActivityCompat.checkSelfPermission( this, Manifest.permission.ACCESS_COARSE_LOCATION ) == PackageManager.PERMISSION_GRANTED ) {
+    public void SvcSnackbar(String message) {
+        Intent broadCastIntent = new Intent(MESSAGE);
+        broadCastIntent.putExtra(NotificationCompat.CATEGORY_MESSAGE, message);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(broadCastIntent);
+    }
+
+    public void attemptBluetoothConnection() throws NoSuchMethodException {
+        SvcSnackbar("Attempting Bluetooth Connection");
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        String deviceName = SharedPrefs.getInstance().getBluetoothHeadsetName();
+        bluetoothAdapter.getProfileProxy(this, new BluetoothProfile.ServiceListener() {
+            public void onServiceConnected(int i, BluetoothProfile bluetoothProfile) {
+                androbuzzMessagingService.this.SvcSnackbar("BT Connected");
+            }
+
+            public void onServiceDisconnected(int i) {
+                androbuzzMessagingService.this.SvcSnackbar("BT Disconnected");
+            }
+        }, 1);
+        BluetoothDevice pairedDevice = null;
+        Set<BluetoothDevice> devices = bluetoothAdapter.getBondedDevices();
+        Timber.e(deviceName);
+        if (devices != null) {
+            Iterator it = devices.iterator();
+            while (true) {
+                if (!it.hasNext()) {
+                    break;
+                }
+                BluetoothDevice device = (BluetoothDevice) it.next();
+                if (deviceName.equals(device.getName())) {
+                    pairedDevice = device;
+                    break;
+                }
+            }
+        }
+        if (pairedDevice.getBondState() == 12) {
+            BluetoothHeadset.class.getDeclaredMethod("connect", new Class[]{BluetoothDevice.class});
+        }
+    }
+
+    public String headsetName() {
+        BluetoothAdapter bt = BluetoothAdapter.getDefaultAdapter();
+        String deviceName = "Unknown device";
+        String deviceMAC = "";
+        if (!bt.isEnabled() || bt.getProfileConnectionState(1) != 2) {
+            return "disconnected";
+        }
+        Set<BluetoothDevice> pairedDevices = bt.getBondedDevices();
+        if (pairedDevices.size() <= 0) {
+            return "error";
+        }
+        for (BluetoothDevice device : pairedDevices) {
+            deviceName = device.getName();
+            deviceMAC = device.getAddress();
+            break;
+        }
+        SharedPrefs.getInstance().saveBluetoothHeadsetName(deviceName);
+        SharedPrefs.getInstance().saveBluetoothHeadsetMac(deviceMAC);
+        return deviceName;
+    }
+
+    public String getAudioRoute() {
+        AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        String route = "bluetooth";
+        if (!isBluetoothHeadsetConnected()) {
+            return "disconnected";
+        }
+        if (audioManager.getMode() != 2) {
+            return route;
+        }
+        if (audioManager.isMicrophoneMute() || !audioManager.isBluetoothScoOn()) {
+            return "notgood";
+        }
+        return route;
+    }
+
+    public boolean isOnCall() {
+        return ((AudioManager) getSystemService(AUDIO_SERVICE)).getMode() == 2;
+    }
+
+    public static boolean isBluetoothHeadsetConnected() {
+        BluetoothAdapter bt = BluetoothAdapter.getDefaultAdapter();
+        if (bt == null || !bt.isEnabled() || bt.getProfileConnectionState(1) != 2) {
+            return false;
+        }
+        return true;
+    }
+
+    @SuppressWarnings("all")
+    private Map getCurrentSignal(Context context) {
+        Map signal = new HashMap();
+        signal.put("bt", headsetName());
+        signal.put("route", getAudioRoute());
+        if (isOnCall()) {
+            signal.put("oncall", "true");
+        }
+        if (ActivityCompat.checkSelfPermission(this, ACCESS_COARSE_LOCATION) == 0) {
             try {
-                final TelephonyManager tm = (TelephonyManager) this.getSystemService( Context.TELEPHONY_SERVICE );
-                for (final CellInfo info : tm.getAllCellInfo()) {
-                    if ( info instanceof CellInfoGsm ) {
-                        final CellSignalStrengthGsm gsm = ((CellInfoGsm) info).getCellSignalStrength();
-                        fullSignalInfo = String.valueOf( gsm );
-                        signalOutput = String.valueOf( gsm.getLevel() );
-                    } else if ( info instanceof CellInfoCdma ) {
-                        final CellSignalStrengthCdma cdma = ((CellInfoCdma) info).getCellSignalStrength();
-                        fullSignalInfo = String.valueOf( cdma );
-                        signalOutput = String.valueOf( cdma.getLevel() );
-                    } else if ( info instanceof CellInfoLte ) {
-                        final CellSignalStrengthLte lte = ((CellInfoLte) info).getCellSignalStrength();
-                        // fullSignalInfo = "{"
-                        signalOutput = String.valueOf( lte.getLevel() );
-                        Log.e( t, "DBM: " + lte.getDbm() );
-                        Log.e( t, "ASU: " + lte.getAsuLevel() );
-                        if ( Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ) {
-                            Log.e( t, "RSRQ: " + lte.getRsrq() );
+                TelephonyManager tm = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
+                for (CellInfo info : tm.getAllCellInfo()) {
+                    if (info instanceof CellInfoGsm) {
+                        CellSignalStrengthGsm gsm = ((CellInfoGsm) info).getCellSignalStrength();
+                        signal.put("type", "gsm");
+                        signal.put("bars", String.valueOf(gsm.getLevel()));
+                        signal.put("dbm", String.valueOf(gsm.getDbm()));
+                        signal.put("asu", String.valueOf(gsm.getAsuLevel()));
+                    } else if (info instanceof CellInfoCdma) {
+                        CellSignalStrengthCdma cdma = ((CellInfoCdma) info).getCellSignalStrength();
+                        String fullSignalInfo = String.valueOf(cdma);
+                        String signalOutput = String.valueOf(cdma.getLevel());
+                        signal.put("type", "cdma");
+                        signal.put("bars", String.valueOf(cdma.getLevel()));
+                        signal.put("dbm", String.valueOf(cdma.getDbm()));
+                        signal.put("asu", String.valueOf(cdma.getAsuLevel()));
+                    } else if (info instanceof CellInfoWcdma) {
+                        CellSignalStrengthWcdma wcdma = ((CellInfoWcdma) info).getCellSignalStrength();
+                        String fullSignalInfo2 = String.valueOf(wcdma);
+                        String signalOutput2 = String.valueOf(wcdma.getLevel());
+                        signal.put("type", "wcdma");
+                        signal.put("bars", String.valueOf(wcdma.getLevel()));
+                        signal.put("dbm", String.valueOf(wcdma.getDbm()));
+                        signal.put("asu", String.valueOf(wcdma.getAsuLevel()));
+                    } else if (info instanceof CellInfoLte) {
+                        CellSignalStrengthLte lte = ((CellInfoLte) info).getCellSignalStrength();
+                        signal.put("type", "lte");
+                        signal.put("bars", String.valueOf(lte.getLevel()));
+                        signal.put("dbm", String.valueOf(lte.getDbm()));
+                        signal.put("asu", String.valueOf(lte.getAsuLevel()));
+                        if (Build.VERSION.SDK_INT >= 26) {
+                            signal.put("rsrq", Integer.valueOf(lte.getRsrq()));
                         }
                     } else {
-                        Log.e( t, "Unknown type of cell signal?" );
-                        throw new Exception( "Unknown type of cell signal!" );
+                        signal.put("type", "?");
                     }
                 }
             } catch (Exception e) {
-                Log.e( t, "Unable to obtain cell signal information", e );
+                Timber.e("Unable to obtain cell signal information", e);
             }
         } else {
-            signalOutput = "0";
-            fullSignalInfo = "Permission ACCESS_COARSE_LOCATION not granted";
-            // We can't ask for permission during this stage
+            String signalOutput3 = "0";
+            String fullSignalInfo3 = "Permission ACCESS_COARSE_LOCATION not granted";
         }
-        return new String[]{signalOutput, fullSignalInfo};
+        return signal;
     }
-//    private void listenToSignalStrength(final MessageModel messageModel, final DatabaseReference databaseReference) {
-//        Log.e(t, "Listening to signal strength changes...");
-//        Log.e(t, "Currently it's " + signalOutput);
-//        final TelephonyManager telephonyManager = (TelephonyManager) this.getSystemService(Context.TELEPHONY_SERVICE);
-//        new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                Looper.prepare();
-//                telephonyManager.listen(new PhoneStateListener() {
-//                    @Override
-//                    public void onSignalStrengthsChanged(final SignalStrength signalStrength) {
-//                        telephonyManager.listen(this, PhoneStateListener.LISTEN_NONE);
-//                        int signalSupport = signalStrength.getGsmSignalStrength();
-//                        if (signalSupport == 99) {
-//                            if (android.os.Build.VERSION.SDK_INT >= 23) {
-//                                switch (signalStrength.getLevel()) {
-//                                    case SIGNAL_STRENGTH_POOR:
-//                                        signalOutput = "Weak";
-//                                        break;
-//                                    case SIGNAL_STRENGTH_MODERATE:
-//                                        signalOutput = "Average";
-//                                        break;
-//                                    case SIGNAL_STRENGTH_GOOD:
-//                                        signalOutput = "Good";
-//                                        break;
-//                                    case SIGNAL_STRENGTH_GREAT:
-//                                        signalOutput = "Great";
-//                                        break;
-//                                }
-//                            }
-//                        } else if (signalSupport >= 30) {
-//                            signalOutput = "Great";
-//                        } else if (signalSupport >= 20) {
-//                            signalOutput = "Good";
-//                        } else if (signalSupport >= 3) {
-//                            signalOutput = "Average";
-//                        } else {
-//                            signalOutput = "Weak";
-//                        }
-//                        messageModel.setSignalInfo(signalOutput);
-//
-//                        SharedPreferences pref = getApplicationContext().getSharedPreferences(Config.SHARED_PREF, 0);
-//                        String token = pref.getString("regToken", null);
-//                        databaseReference.child("messages").child(token).child(messageModel.getmessageDbKey()).setValue(messageModel);
-//                        Log.w(t, "token from signal function: " + token);
-//                        Looper.myLooper().quit();
-//
-//                    }
-//                }, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
-//
-//                Looper.loop();
-//            }
-//        }).start();
-//    }
 }
